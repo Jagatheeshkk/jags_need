@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { TagInput } from "@/components/TagInput";
+import { EnginePanel, PreferredResumes } from "@/components/AutomationPanels";
 import { Alert, Button, Card, Field, inputClass, Loading, PageHeader } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { AutomationRules } from "@/lib/types";
@@ -47,12 +48,15 @@ function RulesForm({ initial }: { initial: AutomationRules }) {
     <>
       <PageHeader
         title="Automation Rules"
-        description="Rules are stored now and enforced by the application engine in Phase 4. Automation is off and paused by default."
+        description="Automation is off and paused by default. Submissions happen only where the portal permits it, the job passes every rule and eligibility check, and no answer needs your confirmation. Everything else goes to the Approval Queue."
       />
       <Alert kind="warn">
-        No application is ever submitted in Phase 1. Even later, submission happens only where a portal permits it, the job
-        passes eligibility checks, and no legal declaration, salary commitment or unknown answer needs your confirmation.
+        Only the mock connector can submit today, so every automated submission is simulated and labelled as such. Real portals
+        stay manual until Phase 5 verifies what each one permits.
       </Alert>
+      <div className="mt-4">
+        <EnginePanel />
+      </div>
       <form onSubmit={save} className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Master switches">
           <label className="mb-2 flex items-center gap-2 text-sm">
@@ -102,6 +106,9 @@ function RulesForm({ initial }: { initial: AutomationRules }) {
               <TagInput label="Company blocklist" value={r.company_blocklist} onChange={(v) => setR({ ...r, company_blocklist: v })} />
             </Field>
           </div>
+        </Card>
+        <Card title="Preferred resume per role">
+          <PreferredResumes value={r.preferred_resume_by_role} onChange={(v) => setR({ ...r, preferred_resume_by_role: v })} />
         </Card>
         <Card title="Per-portal permissions">
           <p className="mb-3 text-xs text-muted">Auto-apply only takes effect for portals whose integration permits submission.</p>

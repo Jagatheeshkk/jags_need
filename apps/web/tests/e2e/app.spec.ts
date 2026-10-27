@@ -171,6 +171,39 @@ test("automation is off and paused by default", async () => {
   await expect(page.getByLabel("Global pause (overrides everything)")).toBeChecked();
 });
 
+test("rules engine previews, runs and routes doubtful applications to the approval queue", async () => {
+  await page.getByRole("link", { name: "Automation Rules" }).click();
+  await page.getByRole("button", { name: "Preview (dry run)" }).click();
+  await expect(page.getByTestId("preview-totals")).toContainText("Currently off or paused");
+
+  await page.getByLabel("Automation enabled").check();
+  await page.getByLabel("Global pause (overrides everything)").uncheck();
+  await page.getByLabel("Minimum match score").fill("0");
+  await page.getByRole("button", { name: "Save rules" }).click();
+  await expect(page.getByText("Rules saved")).toBeVisible();
+
+  await page.getByRole("button", { name: "Run now" }).click();
+  // Auto-apply is off for the mock portal, so nothing is submitted: everything eligible needs approval.
+  await expect(page.getByText(/0 simulated submission\(s\), [1-9]\d* new approval request\(s\)/)).toBeVisible();
+
+  await page.getByRole("link", { name: "Open Approval Queue" }).click();
+  await expect(page.getByRole("heading", { name: "Approval Queue", level: 1 })).toBeVisible();
+  const card = page.locator("main section:visible").filter({ has: page.getByTestId("approval-status") }).first();
+  await expect(card.getByText("Auto-apply is off for Mock Portal (synthetic data); approval needed.")).toBeVisible();
+  await expect(card.getByRole("button", { name: "Approve" })).toBeDisabled();
+  await card.getByLabel("I reviewed the job, the documents and every flagged answer.").check();
+  await card.getByRole("button", { name: "Approve" }).click();
+  await expect(page.getByRole("tab", { name: /Pending/ })).toBeVisible();
+  await page.getByRole("tab", { name: "Decided" }).click();
+  await expect(page.locator("main section:visible").getByText(/Simulated submission done/).first()).toBeVisible();
+
+  // Leave automation paused again.
+  await page.getByRole("link", { name: "Automation Rules" }).click();
+  await page.getByLabel("Global pause (overrides everything)").check();
+  await page.getByRole("button", { name: "Save rules" }).click();
+  await expect(page.getByText("Rules saved")).toBeVisible();
+});
+
 test("readiness reports no paid dependencies", async () => {
   await page.getByRole("link", { name: "Free-Tier Usage & Health" }).click();
   await expect(page.getByText("Paid dependencies:")).toContainText("none");

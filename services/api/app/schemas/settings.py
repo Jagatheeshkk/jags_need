@@ -1,8 +1,10 @@
+import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from app.connectors.registry import get_connector
 from app.core.scoring import DEFAULT_SCORE_WEIGHTS
 
 Item = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -26,8 +28,19 @@ class AutomationRulesIn(BaseModel):
     company_blocklist: list[Item] = Field(default_factory=list, max_length=200)
     max_applications_per_day: int = Field(default=5, ge=0, le=50)
     portal_permissions: dict[str, PortalPermission] = Field(default_factory=dict)
-    preferred_resume_by_role: dict[str, str] = Field(default_factory=dict)
+    # Role keyword (matched against job titles) -> resume id to use for automated applications.
+    preferred_resume_by_role: dict[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)], uuid.UUID
+    ] = Field(default_factory=dict, max_length=20)
     score_weights: dict[str, int] = Field(default_factory=lambda: dict(DEFAULT_SCORE_WEIGHTS))
+
+    @field_validator("portal_permissions")
+    @classmethod
+    def _known_portals(cls, v: dict[str, PortalPermission]) -> dict[str, PortalPermission]:
+        unknown = sorted(code for code in v if get_connector(code) is None)
+        if unknown:
+            raise ValueError(f"unknown portals: {unknown}")
+        return v
 
     @field_validator("score_weights")
     @classmethod

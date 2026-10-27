@@ -148,7 +148,7 @@ def update(
     return app
 
 
-def simulate_submit(db: Session, user: User, app: Application) -> Application:
+def simulate_submit(db: Session, user: User, app: Application, actor: str = "user") -> Application:
     """Mock connector only. Never touches a real portal; the result is flagged simulated."""
     if app.status == "submitted" and app.is_simulated:
         return app  # idempotent
@@ -179,6 +179,7 @@ def simulate_submit(db: Session, user: User, app: Application) -> Application:
         simulated=result.simulated,
         message=result.message,
         reference=result.reference,
+        by=actor,
     )
     db.commit()
     return app

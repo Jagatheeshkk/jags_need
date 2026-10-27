@@ -3,7 +3,7 @@
 A personal job-search and profile-management assistant that runs entirely on free tiers or
 your own machine. No paid APIs, hosting, storage, email, or browser-automation services.
 
-**Status: Phases 1–3 complete.**
+**Status: Phases 1–4 complete.**
 * Phase 1: authentication, database + migrations, candidate profile, dashboard, settings,
   mock portal connector with synthetic data.
 * Phase 2: job collection, normalisation, duplicate detection, freshness/expiry, rule-based
@@ -12,6 +12,8 @@ your own machine. No paid APIs, hosting, storage, email, or browser-automation s
 * Phase 3: resume upload (PDF/DOCX) with reviewed field extraction, master and job-tailored
   resume versions with hashes, cover letters, screening-answer drafts, DOCX/PDF export, and an
   application tracker with status history, follow-ups and duplicate prevention.
+* Phase 4: automation rules engine (dry-run preview, manual/after-refresh runs, daily cap,
+  per-portal switches, global pause) and an approval queue for anything that needs a human.
 Real portal integrations are **not** active: every real portal is shown as *Unsupported* until
 its permitted integration options are verified (Phase 5).
 

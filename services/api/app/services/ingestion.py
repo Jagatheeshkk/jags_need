@@ -6,6 +6,7 @@ Duplicate detection, in order:
   3. same normalised company and near-identical title + description -> repost (merge)
 """
 
+import contextlib
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.connectors.base import ConnectorNotSupported, JobFilters, PortalConnector, PortalJob
 from app.connectors.registry import all_connectors
 from app.models import Job, JobSource, Notification, Portal, TaskRun, User
-from app.services import match_service, portal_service, profile_service, tasks
+from app.services import automation, match_service, portal_service, profile_service, tasks
 from app.services.normalize import (
     MAX_DESCRIPTION,
     MAX_TITLE,
@@ -216,9 +217,15 @@ def run_refresh(
                     dedupe_key=f"job_refresh:{run.id}",
                 )
             )
-        return tasks.finish(db, run, asdict(stats))
+        finished = tasks.finish(db, run, asdict(stats))
     except Exception as exc:
         return tasks.fail(db, run, f"{type(exc).__name__}: {exc}", asdict(stats))
+    rules = automation.get_rules(db, user)
+    if rules.enabled and not rules.global_pause:
+        # Separate task run: an automation problem never marks the refresh as failed.
+        with contextlib.suppress(tasks.TaskAlreadyRunning):
+            automation.run(db, user, trigger="after_refresh")
+    return finished
 
 
 def refresh_due(db: Session, user: User, now: datetime | None = None) -> bool:

@@ -68,6 +68,17 @@ interpreted as instructions. When an optional local model is added, prompts will
 in a clearly delimited data section, and model output will never trigger submissions directly:
 every automated action still goes through the rule engine and approval checks.
 
+## Automation safeguards
+
+* Off and paused by default; the global pause overrides everything and is checked on every run.
+* No submission without a connector capability that permits it; today only the mock connector,
+  so every automated submission is simulated and labelled.
+* Legal declarations, salary commitments, sensitive attestations and unknown answers always go
+  to the approval queue. Approving requires an explicit "I reviewed" confirmation.
+* Earlier human decisions (approve/reject) are never overridden by later runs.
+* Daily cap, duplicate prevention (DB unique constraint) and uncertain-outcome reconciliation
+  apply to automated and manual paths alike. Every action is audited.
+
 ## Portal automation
 
 No CAPTCHA, MFA or anti-bot bypass, ever. No portal passwords stored. Real portal operations

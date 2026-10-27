@@ -125,6 +125,37 @@ draft ─┬─> prepared ─┬─> submitted ─┬─> interviewing ─┬─
 * Every change is an `application_events` row. Follow-ups default to 7 days after submission and
   raise one in-app notification per application per day when due.
 
+## Automation rules and approvals (Phase 4)
+
+`services/automation.py` evaluates every active job against the saved rules and records each
+check as `pass`, `fail` or `review`:
+
+| Order | Check | fail (skip) | review (needs approval) |
+|---|---|---|---|
+| 1 | Master switches | automation off, global pause on | — |
+| 2 | Duplicates, listing | already applied; you approved/rejected earlier; expired | — |
+| 3 | Eligibility | ineligible | eligibility unknown |
+| 4 | Score and filters | below min score; title/location/company allow/blocklist; salary below minimum | salary not disclosed when a minimum is set |
+| 5 | Portal | portal disabled in rules | portal cannot submit automatically; auto-apply off for the portal |
+| 6 | Daily limit | `max_applications_per_day` reached (counted from today's automated/simulated submissions) | — |
+| 7 | Resume and answers | — | preferred resume missing; any screening answer needing confirmation (salary commitment, legal declaration, sensitive attestation, unknown) |
+
+* Any `fail` means **skip**, any `review` means **approval**, and only a clean result means **submit**.
+* **Preview** (`GET /api/automation/preview`) is a pure dry run: it creates and submits nothing.
+* **Run** (`POST /api/automation/run`, `python -m app.cli automate`, or automatically after each
+  successful job refresh) is a `task_runs` entry. It does nothing while disabled or paused.
+* For approvals and submissions it prepares documents from profile facts (preferred or tailored
+  resume, cover letter, screening drafts), creates or reuses the draft application, then either
+  submits through the connector or opens one pending `approval_requests` row per application
+  (a second run refreshes it, never duplicates it).
+* Submission goes through the connector only. Today only the mock connector can submit, so
+  automated submissions are simulated, flagged and recorded with `by: automation`.
+* **Approve** needs `confirm_reviewed: true`. It submits through the connector where permitted
+  (simulated for mock jobs); otherwise it marks the application *prepared* for you to apply
+  manually. **Reject** leaves the draft untouched, and later runs respect it.
+* Pending approvals expire after 7 days, when the listing expires, or when the application was
+  settled another way.
+
 ## Free-tier resilience
 
 * Cold start: frontend maps network errors and 502/503/504 to `BackendUnavailableError`
@@ -142,6 +173,6 @@ draft ─┬─> prepared ─┬─> submitted ─┬─> interviewing ─┬─
 1. ✅ Repo, auth, migrations, profile, dashboard, mock connector, tests
 2. ✅ Job ingestion, normalisation, dedup, rule-based matching
 3. ✅ Resumes, cover letters, DOCX/PDF, application tracking
-4. Automation rules engine + approval workflow
+4. ✅ Automation rules engine + approval workflow
 5. Per-portal verification and permitted integrations
 6. Deployment hardening, recovery drills

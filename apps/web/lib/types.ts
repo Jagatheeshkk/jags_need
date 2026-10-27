@@ -362,3 +362,46 @@ export interface ApplicationItem {
   allowed_next: string[];
   events: ApplicationEvent[];
 }
+
+export interface AutomationDecision {
+  job_id: string;
+  title: string;
+  company: string;
+  portal: string | null;
+  score: number | null;
+  action: "submit" | "approval" | "skip";
+  reasons: string[];
+  checks: { name: string; outcome: "pass" | "fail" | "review"; detail: string }[];
+}
+
+export interface AutomationPreview {
+  enabled: boolean;
+  global_pause: boolean;
+  decisions: AutomationDecision[];
+  totals: { submit: number; approval: number; skip: number };
+}
+
+export interface ApprovalItem {
+  id: string;
+  kind: string;
+  subject_type: string;
+  subject_id: string | null;
+  status: "pending" | "approved" | "rejected" | "expired";
+  created_at: string;
+  decided_at: string | null;
+  expires_at: string | null;
+  payload: {
+    job_id: string;
+    title: string;
+    company: string;
+    portal: string | null;
+    score: number | null;
+    reasons: string[];
+    checks: { name: string; outcome: string; detail: string }[];
+    resume_id: string | null;
+    cover_letter_id: string | null;
+    screening_answers_id: string | null;
+    outcome?: string;
+    decision_note?: string | null;
+  };
+}

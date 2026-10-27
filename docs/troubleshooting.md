@@ -22,4 +22,8 @@
 | Resume suggestions miss fields | Rule-based reading of the text | Fill the missing fields in My Profile; scanned (image-only) PDFs have no text to read. |
 | "Add your name to the profile before generating a resume" (409) | Profile has no full name | Set it in My Profile. |
 | "Confirm that you submitted this application…" (400) | Marking a draft as submitted without confirmation | Tick "I submitted this application on the portal myself". |
+| Automation run says "paused" or "disabled" | Global pause on or automation off | Automation Rules: enable it and untick Global pause, then Save. |
+| Everything goes to the Approval Queue | Auto-apply is off for the portal, or the portal cannot submit | Expected for real portals. For the mock portal, tick Auto-apply. |
+| A job is skipped with "You rejected this application earlier" | Rejections are permanent for that job | Create the application manually from the job page if you change your mind. |
+| "Confirm that you reviewed…" (400) when approving | Approval needs explicit confirmation | Tick "I reviewed the job, the documents and every flagged answer". |
 | Playwright: `Executable doesn't exist` | Browser not installed | `cd apps/web; npx playwright install chromium` |

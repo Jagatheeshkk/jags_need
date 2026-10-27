@@ -45,6 +45,12 @@ $trigger = New-ScheduledTaskTrigger -Daily -At 8am
 Register-ScheduledTask -TaskName "AI Job Agent refresh" -Action $action -Trigger $trigger
 ```
 
+Automation can run on the same schedule (it does nothing while paused):
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "docker" -Argument "compose -f E:\Jags\Jags_need\ai-job-agent\compose.yaml exec -T api python -m app.cli automate"
+```
+
 ### Migrations
 
 ```powershell

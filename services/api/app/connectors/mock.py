@@ -113,8 +113,12 @@ class MockConnector(PortalConnector):
             status="succeeded",
             simulated=True,
             message="Simulated: application prepared.",
-            data={"job_id": job_id, "resume_id": resume_id, "questions": []},
+            data={"job_id": job_id, "resume_id": resume_id, "questions": self._questions(job_id)},
         )
+
+    @staticmethod
+    def _questions(job_id: str) -> list[str]:
+        return next((list(r.get("questions", [])) for r in _load_fixture() if r["id"] == job_id), [])
 
     def submit_application(self, application_id: str) -> OperationResult:
         ref = "MOCK-" + hashlib.sha256(application_id.encode()).hexdigest()[:10].upper()

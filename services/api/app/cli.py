@@ -4,6 +4,7 @@ python -m app.cli migrate            # alembic upgrade head
 python -m app.cli seed               # portal rows (idempotent)
 python -m app.cli seed-sample-jobs   # synthetic jobs from the mock connector (idempotent)
 python -m app.cli ingest             # refresh jobs + scores for the owner (scheduled task)
+python -m app.cli automate           # apply automation rules once (respects pause)
 python -m app.cli readiness          # print the deployment readiness report
 """
 
@@ -20,7 +21,7 @@ from app.connectors.mock import MockConnector
 from app.core.config import get_settings
 from app.db.session import get_sessionmaker
 from app.models import User
-from app.services import ingestion, portal_service, readiness
+from app.services import automation, ingestion, portal_service, readiness
 
 API_ROOT = Path(__file__).resolve().parent.parent
 
@@ -60,6 +61,19 @@ def ingest() -> int:
         return 0 if run.status == "succeeded" else 1
 
 
+def automate() -> int:
+    """Run the automation rules for the owner (respects enable switch and global pause)."""
+    with get_sessionmaker()() as db:
+        user = db.scalars(select(User)).first()
+        if user is None:
+            print("No owner account yet")
+            return 1
+        run = automation.run(db, user, trigger="scheduled")
+        summary = {k: v for k, v in run.result.items() if k != "decisions"}
+        print(json.dumps({"status": run.status, "result": summary, "error": run.error}, indent=2, default=str))
+        return 0 if run.status == "succeeded" else 1
+
+
 def show_readiness() -> int:
     with get_sessionmaker()() as db:
         report = readiness.run(db, get_settings())
@@ -69,7 +83,7 @@ def show_readiness() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli")
-    parser.add_argument("command", choices=["migrate", "seed", "seed-sample-jobs", "ingest", "readiness"])
+    parser.add_argument("command", choices=["migrate", "seed", "seed-sample-jobs", "ingest", "automate", "readiness"])
     args = parser.parse_args(argv)
     if args.command == "migrate":
         migrate()
@@ -79,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
         seed_sample_jobs()
     elif args.command == "ingest":
         return ingest()
+    elif args.command == "automate":
+        return automate()
     else:
         return show_readiness()
     return 0
