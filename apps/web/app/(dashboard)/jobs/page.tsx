@@ -1,103 +1,170 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { TagInput } from "@/components/TagInput";
-import { Alert, Button, Card, Field, inputClass, PageHeader, PlannedFeature } from "@/components/ui";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { JobCard } from "@/components/JobBits";
+import { Alert, Button, Card, Field, inputClass, Loading, PageHeader } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import type { PortalJob, WorkArrangement } from "@/lib/types";
+import { DEFAULT_FILTERS as DEFAULTS, type Filters, toQuery } from "@/lib/jobs";
+import type { JobList, TaskRun } from "@/lib/types";
+import { useApi } from "@/lib/useApi";
 
-function salary(j: PortalJob) {
-  if (j.salary_min == null && j.salary_max == null) return "Salary not disclosed";
-  const fmt = (n: number | null) => (n == null ? "?" : n.toLocaleString("en-IN"));
-  return `${j.salary_currency ?? ""} ${fmt(j.salary_min)} – ${fmt(j.salary_max)}`;
+function RunSummary({ run }: { run: TaskRun }) {
+  const r = run.result;
+  const when = new Date(run.finished_at ?? run.created_at).toLocaleString();
+  if (run.status !== "succeeded") {
+    return (
+      <Alert kind={run.status === "running" ? "info" : "warn"}>
+        Last refresh {run.status} ({when}). {run.error}
+      </Alert>
+    );
+  }
+  return (
+    <p className="text-xs text-muted">
+      Last refresh {when}: {r.fetched ?? 0} fetched, {r.created ?? 0} new, {r.updated ?? 0} updated, {r.merged ?? 0} merged as
+      duplicates, {r.expired ?? 0} expired.
+      {r.portals_searched?.length ? ` Searched: ${r.portals_searched.join(", ")}.` : ""}
+      {r.portals_skipped && Object.keys(r.portals_skipped).length > 0
+        ? ` Not searched (integration not verified): ${Object.keys(r.portals_skipped).join(", ")}.`
+        : ""}
+      {r.portal_errors && Object.keys(r.portal_errors).length > 0
+        ? ` Errors: ${Object.entries(r.portal_errors).map(([k, v]) => `${k} (${v})`).join("; ")}.`
+        : ""}
+    </p>
+  );
 }
 
 export default function JobsPage() {
-  const [titles, setTitles] = useState<string[]>(["QA Lead", "Test Manager"]);
-  const [locations, setLocations] = useState<string[]>([]);
-  const [arrangement, setArrangement] = useState<WorkArrangement>("any");
-  const [jobs, setJobs] = useState<PortalJob[]>();
+  const [draft, setDraft] = useState<Filters>(DEFAULTS);
+  const [applied, setApplied] = useState<Filters>(DEFAULTS);
+  const list = useApi<JobList>(`/jobs?${toQuery(applied, { limit: "100" })}`);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
+  const autoTried = useRef(false);
+  const { reload } = list;
 
-  async function search(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
+  async function refresh(onlyIfDue = false) {
+    setRefreshing(true);
     setError(undefined);
     try {
-      setJobs(
-        await api<PortalJob[]>("/portals/mock/search", {
-          method: "POST",
-          body: { titles, locations, work_arrangement: arrangement, limit: 50 },
-        }),
-      );
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Search failed");
+      await api<TaskRun>(`/jobs/refresh${onlyIfDue ? "?only_if_due=true" : ""}`, { method: "POST" });
+      await reload();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Refresh failed");
     } finally {
-      setBusy(false);
+      setRefreshing(false);
     }
   }
+
+  // Free hosting cannot run a timer while asleep, so the schedule is checked when this page opens.
+  useEffect(() => {
+    if (list.data?.refresh_due && !autoTried.current) {
+      autoTried.current = true;
+      void refresh(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.data?.refresh_due]);
+
+  function apply(e: FormEvent) {
+    e.preventDefault();
+    setApplied(draft);
+  }
+  const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setDraft({ ...draft, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value });
 
   return (
     <>
       <PageHeader
         title="Job Discovery"
-        description="Phase 1 searches only the mock connector. Every result below is synthetic sample data, not a real opening."
+        description="Jobs collected from permitted sources, de-duplicated and scored against your profile by the rule-based engine."
+        actions={
+          <>
+            <a href="/api/jobs/digest" className="rounded-lg border border-line px-3.5 py-2 text-sm font-medium hover:bg-subtle">
+              Download digest
+            </a>
+            <Button onClick={() => refresh(false)} disabled={refreshing}>
+              {refreshing ? "Refreshing…" : "Refresh now"}
+            </Button>
+          </>
+        }
       />
-      <Card title="Search the mock portal">
-        <form onSubmit={search} className="grid gap-4 md:grid-cols-3">
-          <Field label="Titles / keywords">
-            <TagInput label="Titles" value={titles} onChange={setTitles} />
+      <Alert kind="warn">
+        Only the mock connector is active, so every job here is synthetic sample data. Real portals stay off until their
+        permitted integration options are verified (Phase 5).
+      </Alert>
+      <div className="mt-3 space-y-2">
+        {list.data?.last_refresh && <RunSummary run={list.data.last_refresh} />}
+        {error && <Alert kind="error">{error}</Alert>}
+      </div>
+
+      <Card className="mt-4">
+        <form onSubmit={apply} className="grid gap-3 md:grid-cols-4">
+          <Field label="Search">
+            <input className={inputClass} value={draft.q} onChange={set("q")} placeholder="Title, company, text" />
           </Field>
-          <Field label="Locations">
-            <TagInput label="Locations" value={locations} onChange={setLocations} placeholder="e.g. Bengaluru, Remote" />
+          <Field label="Role contains">
+            <input className={inputClass} value={draft.role} onChange={set("role")} placeholder="e.g. lead" />
+          </Field>
+          <Field label="Location">
+            <input className={inputClass} value={draft.location} onChange={set("location")} placeholder="e.g. Bengaluru, remote" />
           </Field>
           <Field label="Work arrangement">
-            <select className={inputClass} value={arrangement} onChange={(e) => setArrangement(e.target.value as WorkArrangement)}>
-              <option value="any">Any</option>
+            <select className={inputClass} value={draft.work_arrangement} onChange={set("work_arrangement")}>
+              <option value="">Any</option>
               <option value="remote">Remote</option>
               <option value="hybrid">Hybrid</option>
               <option value="onsite">On-site</option>
             </select>
           </Field>
-          <div className="md:col-span-3">
-            <Button type="submit" disabled={busy}>
-              {busy ? "Searching…" : "Search"}
+          <Field label="Minimum score">
+            <input className={inputClass} type="number" min={0} max={100} value={draft.min_score} onChange={set("min_score")} />
+          </Field>
+          <Field label="Minimum salary" hint="Jobs with undisclosed salary are kept.">
+            <input className={inputClass} type="number" min={0} value={draft.min_salary} onChange={set("min_salary")} />
+          </Field>
+          <Field label="Sort by">
+            <select className={inputClass} value={draft.sort} onChange={set("sort")}>
+              <option value="score">Best match</option>
+              <option value="newest">Newest</option>
+            </select>
+          </Field>
+          <div className="space-y-1 pt-6 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={draft.eligible_only} onChange={set("eligible_only")} />
+              Eligible only
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={draft.include_expired} onChange={set("include_expired")} />
+              Include expired
+            </label>
+          </div>
+          <div className="flex gap-2 md:col-span-4">
+            <Button type="submit">Apply filters</Button>
+            <Button type="button" variant="secondary" onClick={() => { setDraft(DEFAULTS); setApplied(DEFAULTS); }}>
+              Reset
             </Button>
           </div>
         </form>
       </Card>
+
       <div className="mt-4 space-y-3">
-        {error && <Alert kind="error">{error}</Alert>}
-        {jobs && jobs.length === 0 && <Alert>No synthetic jobs match these filters.</Alert>}
-        {jobs?.map((j) => (
-          <Card key={j.external_id}>
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h3 className="font-semibold">{j.title}</h3>
-                <p className="text-sm text-muted">
-                  {j.company} · {j.location ?? "Location not stated"} · {j.work_arrangement ?? "arrangement unknown"}
-                </p>
-              </div>
-              {j.is_synthetic && (
-                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                  Synthetic sample
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-sm">{j.description}</p>
-            <p className="mt-2 text-xs text-muted">
-              {salary(j)} · Experience {j.experience_min ?? "?"}–{j.experience_max ?? "?"} yrs · Skills: {j.skills.join(", ")}
+        {list.loading && !list.data ? (
+          <Loading sleeping={list.sleeping} />
+        ) : list.error ? (
+          <Alert kind="error">{list.error.message}</Alert>
+        ) : list.data && list.data.total === 0 ? (
+          <Alert>
+            {list.data.last_refresh
+              ? "No jobs match these filters. Try widening them, or add preferred roles and locations in My Profile."
+              : "No jobs yet. Click Refresh now to collect jobs."}
+          </Alert>
+        ) : (
+          <>
+            <p className="text-sm text-muted" data-testid="job-total">
+              {list.data?.total} job(s)
             </p>
-          </Card>
-        ))}
-      </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <PlannedFeature phase={2}>
-          Job ingestion into your database, de-duplication, freshness indicators and the 0–100 match score with matched and
-          missing skills and a plain-language explanation.
-        </PlannedFeature>
-        <PlannedFeature phase={5}>Searching real portals, only through integrations each portal officially permits.</PlannedFeature>
+            {list.data?.items.map((j) => <JobCard key={j.id} job={j} />)}
+          </>
+        )}
       </div>
     </>
   );

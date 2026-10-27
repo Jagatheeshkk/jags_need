@@ -33,6 +33,9 @@ class CandidateProfile(UUIDPk, Timestamps, Base):
     excluded_companies: Mapped[list[Any]] = mapped_column(default=list, nullable=False)
     target_experience_min: Mapped[int | None] = mapped_column(Integer)
     target_experience_max: Mapped[int | None] = mapped_column(Integer)
+    # Extra search terms beyond preferred_roles, and how often a refresh is due.
+    search_keywords: Mapped[list[Any]] = mapped_column(default=list, nullable=False)
+    refresh_interval_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
 
     education: Mapped[list[Any]] = mapped_column(default=list, nullable=False)
     certifications: Mapped[list[Any]] = mapped_column(default=list, nullable=False)

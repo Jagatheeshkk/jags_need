@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 
 from app.api.deps import csrf_protect
-from app.api.routes import auth, misc, portals, profile, settings
+from app.api.routes import auth, jobs, misc, portals, profile, settings
 from app.core.config import get_settings
 
 logger = logging.getLogger("app")
@@ -58,7 +58,7 @@ def create_app() -> FastAPI:
             headers={"Retry-After": "5"},
         )
 
-    for r in (auth.router, profile.router, portals.router, settings.router, misc.router):
+    for r in (auth.router, profile.router, portals.router, jobs.router, settings.router, misc.router):
         app.include_router(r, prefix="/api")
     return app
 

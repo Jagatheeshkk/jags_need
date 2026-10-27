@@ -28,6 +28,8 @@ _NON_NULL_DEFAULTS: dict[str, Any] = {
     "links": dict,
     "work_arrangement": lambda: "any",
     "salary_currency": lambda: "INR",
+    "search_keywords": list,
+    "refresh_interval_hours": lambda: 24,
 }
 
 

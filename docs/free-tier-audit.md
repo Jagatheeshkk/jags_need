@@ -25,8 +25,8 @@ page and `python -m app.cli readiness` flag known risky providers.
 |---|---|---|
 | AI / matching | Rule-based engine (Phase 2). Optional local **Ollama**. `AI_PROVIDER` only accepts `rule_based` or `ollama`; a paid provider cannot be configured. | $0 |
 | File storage | PostgreSQL `resumes.content` with SHA-256 hashes | Counts against Neon storage |
-| Background jobs | Database-backed state with idempotency keys (Phase 2); manual refresh | $0 |
-| Notifications | In-app + browser Notification API + downloadable digest. `EMAIL_PROVIDER` only accepts `none`. | $0 |
+| Background jobs | `task_runs` table: persistent state, heartbeats, interrupted-run recovery, idempotency keys. Runs inside a request or the `app.cli ingest` command; refresh-when-due on page open | $0 |
+| Notifications | In-app + browser Notification API + downloadable Markdown digest (`/api/jobs/digest`). `EMAIL_PROVIDER` only accepts `none`. | $0 |
 | Secrets | Environment variables in Render / Vercel dashboards | $0 |
 | Backups | `pg_dump` / `pg_restore` via the `postgres:17-alpine` image | $0 |
 | Domain | Free `*.vercel.app` and `*.onrender.com` subdomains | $0 |

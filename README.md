@@ -3,8 +3,12 @@
 A personal job-search and profile-management assistant that runs entirely on free tiers or
 your own machine. No paid APIs, hosting, storage, email, or browser-automation services.
 
-**Status: Phase 1 complete** — authentication, database + migrations, candidate profile,
-dashboard, settings, mock portal connector with synthetic data, and tests.
+**Status: Phases 1–2 complete.**
+* Phase 1: authentication, database + migrations, candidate profile, dashboard, settings,
+  mock portal connector with synthetic data.
+* Phase 2: job collection, normalisation, duplicate detection, freshness/expiry, rule-based
+  0–100 match scores with explanations and separate eligibility checks, filters, saved jobs,
+  match feedback, and a downloadable daily digest.
 Real portal integrations are **not** active: every real portal is shown as *Unsupported* until
 its permitted integration options are verified (Phase 5).
 

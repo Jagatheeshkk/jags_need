@@ -66,9 +66,9 @@ def test_seed_sample_jobs_idempotent(owner: TestClient, db_factory, monkeypatch)
     seed_sample_jobs()
     seed_sample_jobs()
     with db_factory() as db:
-        assert db.scalar(select(func.count()).select_from(Job)) == 10
+        assert db.scalar(select(func.count()).select_from(Job)) == 11  # 12 listings, 1 repost merged
     ov = owner.get("/api/overview").json()
-    assert ov["jobs"] == {"real": 0, "synthetic": 10}
+    assert ov["jobs"] == {"real": 0, "synthetic": 11}
 
 
 def test_automation_rules_default_safe_and_validated(owner: TestClient) -> None:

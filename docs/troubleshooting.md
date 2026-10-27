@@ -14,4 +14,7 @@
 | Production API refuses to start | Safety checks: default `SECRET_KEY`, missing `BOOTSTRAP_TOKEN`, or SQLite | Set the variables listed in `infra/env.production.example`. |
 | Neon: `prepared statement ... does not exist` | Pooled endpoint + prepared statements | Already disabled (`prepare_threshold=None`). Make sure you deployed the current code. |
 | Render services suspended mid-month | 750 free instance hours used | Wait for the next month or run the API locally with Docker Compose. |
+| "A refresh is already running" (409) | Another refresh is in progress | Wait. If the server slept mid-run, the run is marked *interrupted* after 10 minutes and a new refresh is allowed. |
+| Refresh finds no jobs | Searches use your preferred roles, keywords and locations; only the mock connector is active | Add preferred roles/locations in My Profile, or widen them. Real portals arrive with Phase 5. |
+| A job scores lower than expected | Missing profile data counts as neutral (0.5), not a match | Open the job and read "Why this score"; fill the fields shown as *unknown*. |
 | Playwright: `Executable doesn't exist` | Browser not installed | `cd apps/web; npx playwright install chromium` |

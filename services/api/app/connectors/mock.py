@@ -29,7 +29,10 @@ def _load_fixture() -> list[dict[str, Any]]:
 
 
 def _to_job(raw: dict[str, Any]) -> PortalJob:
-    posted = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=int(raw.get("posted_day_offset", 0)))
+    # Dates are relative to today so freshness indicators behave like a live feed.
+    today = datetime.now(UTC).replace(hour=9, minute=0, second=0, microsecond=0)
+    posted = today - timedelta(days=int(raw.get("posted_days_ago", 0)))
+    expires = today - timedelta(days=int(raw["expires_days_ago"])) if "expires_days_ago" in raw else None
     return PortalJob(
         external_id=raw["id"],
         title=raw["title"],
@@ -45,6 +48,7 @@ def _to_job(raw: dict[str, Any]) -> PortalJob:
         experience_max=raw.get("experience_max"),
         url=f"https://mock-portal.invalid/jobs/{raw['id']}",
         posted_at=posted,
+        expires_at=expires,
         is_synthetic=True,
     )
 

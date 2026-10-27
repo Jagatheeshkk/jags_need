@@ -64,11 +64,13 @@ class ProfileUpdate(BaseModel):
     excluded_companies: list[ShortText] | None = Field(default=None, max_length=200)
     target_experience_min: int | None = Field(default=None, ge=0, le=60)
     target_experience_max: int | None = Field(default=None, ge=0, le=60)
+    search_keywords: list[ShortText] | None = Field(default=None, max_length=20)
+    refresh_interval_hours: int | None = Field(default=None, ge=1, le=168)
     education: list[EducationItem] | None = Field(default=None, max_length=20)
     certifications: list[CertificationItem] | None = Field(default=None, max_length=50)
     links: dict[str, Annotated[str, StringConstraints(max_length=500)]] | None = None
 
-    @field_validator("preferred_roles", "preferred_locations", "excluded_companies")
+    @field_validator("preferred_roles", "preferred_locations", "excluded_companies", "search_keywords")
     @classmethod
     def _unique(cls, v: list[str] | None) -> list[str] | None:
         return _dedupe(v) if v is not None else None
@@ -173,6 +175,8 @@ class ProfileOut(BaseModel):
     excluded_companies: list[str]
     target_experience_min: int | None
     target_experience_max: int | None
+    search_keywords: list[str]
+    refresh_interval_hours: int
     education: list[EducationItem]
     certifications: list[CertificationItem]
     links: dict[str, str]

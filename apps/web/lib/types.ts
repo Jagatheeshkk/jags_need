@@ -79,6 +79,8 @@ export interface Profile {
   excluded_companies: string[];
   target_experience_min: number | null;
   target_experience_max: number | null;
+  search_keywords: string[];
+  refresh_interval_hours: number;
   education: Education[];
   certifications: Certification[];
   links: Record<string, string>;
@@ -182,4 +184,81 @@ export interface AuditEntry {
   entity_id: string | null;
   details: Record<string, unknown>;
   created_at: string;
+}
+
+export type Freshness = "new" | "fresh" | "aging" | "stale" | "expired" | "unknown";
+export type ComponentStatus = "match" | "partial" | "mismatch" | "unknown";
+
+export interface MatchComponent {
+  weight: number;
+  score: number;
+  status: ComponentStatus;
+  detail: string;
+}
+
+export interface JobMatch {
+  score: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  eligibility: { status: "eligible" | "ineligible" | "unknown"; reasons: string[] };
+  components: Record<string, MatchComponent>;
+  engine: string;
+  is_saved: boolean;
+  feedback: "good_match" | "poor_match" | null;
+}
+
+export interface JobSummary {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  work_arrangement: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  experience_min: number | null;
+  experience_max: number | null;
+  posted_at: string | null;
+  expires_at: string | null;
+  last_seen_at: string | null;
+  status: string;
+  freshness: Freshness;
+  is_synthetic: boolean;
+  source_count: number;
+  match: JobMatch | null;
+}
+
+export interface JobDetail extends JobSummary {
+  description: string | null;
+  skills: string[];
+  canonical_url: string | null;
+  sources: { portal: string; external_id: string; url: string | null; fetched_at: string }[];
+  explanation: string | null;
+}
+
+export interface TaskRun {
+  id: string;
+  kind: string;
+  status: "running" | "succeeded" | "failed" | "interrupted";
+  trigger: string;
+  result: {
+    fetched?: number;
+    created?: number;
+    updated?: number;
+    merged?: number;
+    expired?: number;
+    portals_searched?: string[];
+    portals_skipped?: Record<string, string>;
+    portal_errors?: Record<string, string>;
+  };
+  error: string | null;
+  created_at: string;
+  finished_at: string | null;
+}
+
+export interface JobList {
+  items: JobSummary[];
+  total: number;
+  last_refresh: TaskRun | null;
+  refresh_due: boolean;
 }

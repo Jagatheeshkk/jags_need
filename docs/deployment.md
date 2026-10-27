@@ -34,6 +34,17 @@ $env:BACKEND_URL = "http://127.0.0.1:8000"
 npm run dev
 ```
 
+### Refreshing jobs on a schedule (optional, local)
+
+Free hosting sleeps, so the app checks the refresh interval when you open Job Discovery.
+To refresh on a timer from your Windows laptop instead:
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "docker" -Argument "compose -f E:\Jags\Jags_need\ai-job-agent\compose.yaml exec -T api python -m app.cli ingest"
+$trigger = New-ScheduledTaskTrigger -Daily -At 8am
+Register-ScheduledTask -TaskName "AI Job Agent refresh" -Action $action -Trigger $trigger
+```
+
 ### Migrations
 
 ```powershell

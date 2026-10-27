@@ -83,6 +83,8 @@ function BasicsForm({ profile, onSaved }: { profile: Profile; onSaved: (p: Profi
     notice_period_days: profile.notice_period_days?.toString() ?? "",
     target_experience_min: profile.target_experience_min?.toString() ?? "",
     target_experience_max: profile.target_experience_max?.toString() ?? "",
+    search_keywords: profile.search_keywords,
+    refresh_interval_hours: profile.refresh_interval_hours.toString(),
     excluded_companies: profile.excluded_companies,
   });
   const { msg, busy, run } = useSaver();
@@ -109,6 +111,8 @@ function BasicsForm({ profile, onSaved }: { profile: Profile; onSaved: (p: Profi
       target_experience_min: numOrNull(f.target_experience_min),
       target_experience_max: numOrNull(f.target_experience_max),
       excluded_companies: f.excluded_companies,
+      search_keywords: f.search_keywords,
+      refresh_interval_hours: numOrNull(f.refresh_interval_hours) ?? 24,
     };
     const p = await run(() => api<Profile>("/profile", { method: "PATCH", body }));
     if (p) onSaved(p);
@@ -171,6 +175,14 @@ function BasicsForm({ profile, onSaved }: { profile: Profile; onSaved: (p: Profi
               <input aria-label="Experience minimum" className={inputClass} type="number" min="0" value={f.target_experience_min} onChange={set("target_experience_min")} />
               <input aria-label="Experience maximum" className={inputClass} type="number" min="0" value={f.target_experience_max} onChange={set("target_experience_max")} />
             </div>
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Extra search keywords" hint="Searched in addition to your preferred roles.">
+            <TagInput label="Extra search keywords" value={f.search_keywords} onChange={(v) => setF({ ...f, search_keywords: v })} placeholder="e.g. HRMS, Playwright" />
+          </Field>
+          <Field label="Refresh jobs every (hours)" hint="Checked when you open Job Discovery; free hosting cannot run a timer while asleep.">
+            <input className={inputClass} type="number" min="1" max="168" value={f.refresh_interval_hours} onChange={set("refresh_interval_hours")} />
           </Field>
         </div>
         <Field label="Excluded companies">

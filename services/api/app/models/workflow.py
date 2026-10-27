@@ -128,3 +128,26 @@ class AuditLog(UUIDPk, Base):
     details: Mapped[dict[str, Any]] = mapped_column(default=dict, nullable=False)
     ip_hash: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class TaskRun(UUIDPk, Base):
+    """Persistent state for background work (job refresh, rescoring).
+
+    Free hosting can sleep or restart mid-task, so state lives in the database: a run left
+    'running' without a recent heartbeat is marked 'interrupted' and can be retried safely.
+    """
+
+    __tablename__ = "task_runs"
+    __table_args__ = (Index("ix_task_runs_user_kind_created", "user_id", "kind", "created_at"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    # running | succeeded | failed | interrupted
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="running")
+    trigger: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
+    idempotency_key: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
+    result: Mapped[dict[str, Any]] = mapped_column(default=dict, nullable=False)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    heartbeat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

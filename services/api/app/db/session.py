@@ -12,10 +12,16 @@ def build_engine(url: str, pool_size: int = 3) -> Engine:
         engine = create_engine(url, connect_args={"check_same_thread": False})
 
         @event.listens_for(engine, "connect")
-        def _fk_on(dbapi_conn, _record):
+        def _on_connect(dbapi_conn, _record):
             cur = dbapi_conn.cursor()
             cur.execute("PRAGMA foreign_keys=ON")
             cur.close()
+            # Let SQLAlchemy own transactions so SAVEPOINTs (begin_nested) work on pysqlite.
+            dbapi_conn.isolation_level = None
+
+        @event.listens_for(engine, "begin")
+        def _on_begin(conn):
+            conn.exec_driver_sql("BEGIN")
 
         return engine
     # Small pool + pre-ping: free Postgres tiers cap connections and suspend idle compute,

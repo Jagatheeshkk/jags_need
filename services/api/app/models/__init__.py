@@ -11,6 +11,7 @@ from app.models.workflow import (
     AutomationRule,
     Notification,
     ProfileSyncRun,
+    TaskRun,
 )
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "ProfileSyncRun",
     "Resume",
     "Skill",
+    "TaskRun",
     "User",
 ]

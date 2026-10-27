@@ -25,6 +25,8 @@ class Job(UUIDPk, Timestamps, Base):
 
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     company: Mapped[str] = mapped_column(String(200), nullable=False)
+    # Normalised company name; narrows the content-similarity duplicate search.
+    company_key: Mapped[str] = mapped_column(String(200), nullable=False, default="", index=True)
     location: Mapped[str | None] = mapped_column(String(200))
     work_arrangement: Mapped[str | None] = mapped_column(String(20))
     description: Mapped[str | None] = mapped_column(Text)
@@ -38,6 +40,9 @@ class Job(UUIDPk, Timestamps, Base):
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Skills listed by the source, when it provides structured skills.
+    skills: Mapped[list[Any]] = mapped_column(default=list, nullable=False)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     # True for mock-connector data so it is never presented as a real listing.
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

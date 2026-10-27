@@ -30,7 +30,7 @@ test("owner account setup lands on the overview with real counts", async () => {
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
   // Seeded synthetic jobs are reported separately from real ones (none).
   await expect(page.getByText("Real job listings").locator("..")).toContainText("0");
-  await expect(page.getByText("Synthetic sample jobs").locator("..")).toContainText("10");
+  await expect(page.getByText("Synthetic sample jobs").locator("..")).toContainText("11");
 });
 
 test("profile edits persist", async () => {
@@ -70,13 +70,44 @@ test("real portals are shown as unsupported; mock connects", async () => {
   await expect(mock.getByTestId("status-badge")).toHaveText("Connected");
 });
 
-test("job discovery returns only labelled synthetic jobs", async () => {
+test("job discovery lists scored, labelled synthetic jobs", async () => {
   await page.getByRole("link", { name: "Job Discovery" }).click();
-  await page.getByRole("button", { name: "Search" }).click();
-  const badges = page.getByText("Synthetic sample", { exact: true });
-  await expect(badges.first()).toBeVisible();
+  // First visit triggers the scheduled refresh; its summary appears once done.
+  await expect(page.getByText(/Last refresh .*fetched/)).toBeVisible();
+  await expect(page.getByTestId("job-total")).toBeVisible();
   const cards = page.locator("section", { has: page.locator("h3") });
-  expect(await badges.count()).toBe(await cards.count());
+  const count = await cards.count();
+  expect(count).toBeGreaterThan(0);
+  await expect(page.getByText("Synthetic sample", { exact: true })).toHaveCount(count);
+  await expect(page.getByTestId("score")).toHaveCount(count);
+  await expect(page.getByRole("link", { name: "Download digest" })).toHaveAttribute("href", "/api/jobs/digest");
+});
+
+test("filters narrow the list", async () => {
+  await page.getByRole("combobox", { name: "Work arrangement", exact: true }).selectOption("remote");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  const cards = page.locator("section", { has: page.locator("h3") });
+  await expect(cards.first()).toContainText("remote");
+  for (const text of await cards.allInnerTexts()) expect(text).toContain("remote");
+  await page.getByRole("button", { name: "Reset" }).click();
+});
+
+test("job details explain the score, and saving shows it under Saved Jobs", async () => {
+  const first = page.locator("section h3 a").first();
+  const title = (await first.innerText()).trim();
+  await first.click();
+  await expect(page.getByRole("heading", { name: title, level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Why this score" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Skills and experience" })).toBeVisible();
+  await expect(page.getByText("not a real opening")).toBeVisible();
+  await page.getByRole("button", { name: "☆ Save" }).click();
+  await expect(page.getByRole("button", { name: "★ Saved" })).toBeVisible();
+  await page.getByRole("button", { name: "Good match" }).click();
+  await expect(page.getByText("feedback saved")).toBeVisible();
+
+  await page.getByRole("link", { name: "Saved Jobs" }).click();
+  await expect(page.getByRole("heading", { name: "Saved Jobs", level: 1 })).toBeVisible();
+  await expect(page.locator("main section h3 a:visible")).toHaveText([title]);
 });
 
 test("automation is off and paused by default", async () => {

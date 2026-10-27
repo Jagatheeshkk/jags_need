@@ -50,7 +50,13 @@ export default function NotificationsPage() {
             Allow browser notifications
           </Button>
         )}
-        <p className="mt-2 text-xs text-muted">The downloadable daily job digest arrives with job ingestion in Phase 2.</p>
+        <p className="mt-2 text-xs text-muted">
+          Daily digest:{" "}
+          <a href="/api/jobs/digest" className="text-brand hover:underline">
+            download today&apos;s job digest (Markdown)
+          </a>
+          .
+        </p>
       </Card>
       {data.length === 0 ? (
         <Alert>No notifications.</Alert>

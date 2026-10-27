@@ -54,6 +54,7 @@ class PortalJob(BaseModel):
     experience_max: int | None = None
     url: str | None = None
     posted_at: datetime | None = None
+    expires_at: datetime | None = None
     is_synthetic: bool = False
 
 
