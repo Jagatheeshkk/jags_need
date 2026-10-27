@@ -1,0 +1,55 @@
+# Local development stack: PostgreSQL + FastAPI + Next.js.
+# Copy .env.example to .env first. Ports bind to localhost only.
+name: ai-job-agent
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aja}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-aja}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aja} -d ${POSTGRES_DB:-aja}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./services/api
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aja}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-aja}
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:-}
+      CORS_ORIGINS: http://localhost:${WEB_HOST_PORT:-3000}
+      AI_PROVIDER: ${AI_PROVIDER:-rule_based}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        BACKEND_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
+
+volumes:
+  pgdata:

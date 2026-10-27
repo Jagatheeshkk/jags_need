@@ -1,0 +1,185 @@
+export type WorkArrangement = "remote" | "hybrid" | "onsite" | "any";
+
+export type ConnectionStatus =
+  | "connected"
+  | "not_connected"
+  | "unsupported"
+  | "needs_user_action"
+  | "sleeping"
+  | "rate_limited"
+  | "failed"
+  | "succeeded";
+
+export interface User {
+  id: string;
+  email: string;
+  display_name: string;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface Employment {
+  id: string;
+  company: string;
+  title: string;
+  location: string | null;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean;
+  description: string | null;
+  achievements: string[];
+  sort_order: number;
+}
+
+export type EmploymentInput = Omit<Employment, "id">;
+
+export interface CandidateSkill {
+  id: string;
+  name: string;
+  level: "beginner" | "intermediate" | "advanced" | "expert" | null;
+  years_experience: number | null;
+  is_primary: boolean;
+}
+
+export interface Education {
+  institution: string;
+  degree: string;
+  field_of_study?: string | null;
+  start_year?: number | null;
+  end_year?: number | null;
+}
+
+export interface Certification {
+  name: string;
+  issuer?: string | null;
+  year?: number | null;
+}
+
+export interface Completeness {
+  score: number;
+  missing: string[];
+}
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  headline: string | null;
+  summary: string | null;
+  total_experience_years: number | null;
+  preferred_roles: string[];
+  preferred_locations: string[];
+  work_arrangement: WorkArrangement;
+  salary_currency: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  notice_period_days: number | null;
+  excluded_companies: string[];
+  target_experience_min: number | null;
+  target_experience_max: number | null;
+  education: Education[];
+  certifications: Certification[];
+  links: Record<string, string>;
+  employment: Employment[];
+  skills: CandidateSkill[];
+  completeness: Completeness;
+}
+
+export interface Capabilities {
+  mode: "mock" | "unverified" | "manual" | "api";
+  search_jobs: boolean;
+  get_job_details: boolean;
+  get_profile: boolean;
+  update_profile: boolean;
+  prepare_application: boolean;
+  submit_application: boolean;
+  get_application_status: boolean;
+  notes: string;
+}
+
+export interface Portal {
+  code: string;
+  name: string;
+  base_url: string | null;
+  status: ConnectionStatus;
+  capabilities: Capabilities;
+  last_checked_at: string | null;
+  last_error: string | null;
+}
+
+export interface PortalJob {
+  external_id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  work_arrangement: string | null;
+  description: string | null;
+  skills: string[];
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string | null;
+  experience_min: number | null;
+  experience_max: number | null;
+  url: string | null;
+  posted_at: string | null;
+  is_synthetic: boolean;
+}
+
+export interface Overview {
+  profile_completeness: Completeness;
+  jobs: { real: number; synthetic: number };
+  saved_jobs: number;
+  applications: Record<string, number>;
+  pending_approvals: number;
+  unread_notifications: number;
+  portals: { code: string; name: string; status: ConnectionStatus }[];
+}
+
+export interface AutomationRules {
+  enabled: boolean;
+  global_pause: boolean;
+  min_match_score: number;
+  allowed_titles: string[];
+  allowed_locations: string[];
+  min_salary: number | null;
+  company_allowlist: string[];
+  company_blocklist: string[];
+  max_applications_per_day: number;
+  portal_permissions: Record<string, { enabled: boolean; auto_apply: boolean }>;
+  preferred_resume_by_role: Record<string, string>;
+  score_weights: Record<string, number>;
+  updated_at?: string | null;
+}
+
+export interface ReadinessCheck {
+  name: string;
+  status: "ok" | "warn" | "fail" | "info";
+  detail: string;
+}
+
+export interface ReadinessReport {
+  ready: boolean;
+  paid_dependencies: string[];
+  checks: ReadinessCheck[];
+}
+
+export interface AppNotification {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
