@@ -43,5 +43,5 @@ def delete_employment(employment_id: uuid.UUID, request: Request, user: CurrentU
 @router.put("/skills", response_model=ProfileOut)
 def replace_skills(body: list[SkillIn], request: Request, user: CurrentUser, db: DbSession) -> ProfileOut:
     if len(body) > 200:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="At most 200 skills")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="At most 200 skills")
     return profile_service.to_out(profile_service.replace_skills(db, user, body, request))

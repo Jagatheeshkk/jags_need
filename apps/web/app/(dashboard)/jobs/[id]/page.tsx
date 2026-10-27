@@ -12,6 +12,7 @@ import {
   STATUS_STYLE,
   SyntheticTag,
 } from "@/components/JobBits";
+import { PreparePanel } from "@/components/PreparePanel";
 import { Alert, Button, Card, Loading, PageHeader } from "@/components/ui";
 import { api } from "@/lib/api";
 import type { JobDetail, JobMatch } from "@/lib/types";
@@ -140,9 +141,7 @@ export default function JobDetailPage() {
             </ul>
             {job.sources.length > 1 && <p className="mt-2 text-xs text-muted">Duplicates merged into this one listing.</p>}
           </Card>
-          <Card title="Apply">
-            <p className="text-sm text-muted">Application preparation and tracking arrive in Phase 3.</p>
-          </Card>
+          <PreparePanel jobId={job.id} isSynthetic={job.is_synthetic} />
         </div>
       </div>
     </>

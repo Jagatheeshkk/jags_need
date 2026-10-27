@@ -8,9 +8,11 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     Application,
+    ApplicationEvent,
     ApprovalRequest,
     AuditLog,
     AutomationRule,
+    Document,
     JobMatch,
     Notification,
     PortalConnection,
@@ -44,7 +46,7 @@ def export_user_data(db: Session, user: User) -> dict[str, Any]:
         return [_row(r, exclude) for r in db.scalars(select(model).where(model.user_id == uid))]
 
     return {
-        "export_format": "ai-job-agent/v1",
+        "export_format": "ai-job-agent/v2",
         "exported_at": datetime.now(UTC).isoformat(),
         "user": _row(user, exclude={"password_hash", "session_version"}),
         "profile": profile_service.to_out(profile).model_dump(mode="json"),
@@ -54,6 +56,10 @@ def export_user_data(db: Session, user: User) -> dict[str, Any]:
         "resumes": rows(Resume, exclude={"content"}),
         "job_matches": rows(JobMatch),
         "applications": rows(Application),
+        "application_events": [
+            _row(e) for e in db.scalars(select(ApplicationEvent).join(Application).where(Application.user_id == uid))
+        ],
+        "documents": rows(Document),
         "profile_sync_runs": rows(ProfileSyncRun),
         "approval_requests": rows(ApprovalRequest),
         "notifications": rows(Notification),

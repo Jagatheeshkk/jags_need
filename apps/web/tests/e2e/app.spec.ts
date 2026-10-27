@@ -110,6 +110,61 @@ test("job details explain the score, and saving shows it under Saved Jobs", asyn
   await expect(page.locator("main section h3 a:visible")).toHaveText([title]);
 });
 
+test("resume upload is read, reviewed and only ticked values are applied", async () => {
+  await page.getByRole("link", { name: "Resume Library" }).click();
+  await page.getByLabel("Resume file").setInputFiles("tests/e2e/fixtures/synthetic-resume.docx");
+  await page.getByRole("button", { name: "Upload and read" }).click();
+  await expect(page.getByRole("heading", { name: "Review what was read from your resume" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "asha.example@example.com" })).toBeVisible();
+  await page.getByLabel("Use Phone").check();
+  await page.getByRole("checkbox", { name: "Playwright", exact: true }).check();
+  await page.getByRole("button", { name: "Copy ticked values to profile" }).click();
+  await expect(page.getByText("Selected values copied to your profile.")).toBeVisible();
+  await page.getByRole("link", { name: "My Profile" }).click();
+  await expect(page.getByLabel("Phone", { exact: true })).toHaveValue("+91 98765 43210");
+  await expect(page.getByLabel("Full name", { exact: true })).toHaveValue("E2E Owner"); // not ticked, not changed
+});
+
+test("master resume generates versioned DOCX and PDF downloads", async () => {
+  await page.getByRole("link", { name: "Resume Library" }).click();
+  await page.getByRole("button", { name: "Generate master resume" }).click();
+  await expect(page.getByText(/Master resume v1 generated/)).toBeVisible();
+  const row = page.getByRole("row", { name: /Master resume/ });
+  for (const [fmt, type] of [["DOCX", "wordprocessingml"], ["PDF", "application/pdf"]]) {
+    const href = await row.getByRole("link", { name: fmt }).getAttribute("href");
+    const res = await page.request.get(href!);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain(type);
+  }
+});
+
+test("prepare an application and track a simulated submission", async () => {
+  await page.getByRole("link", { name: "Saved Jobs" }).click();
+  await page.locator("main section h3 a:visible").first().click();
+  await page.getByRole("button", { name: "Generate tailored resume" }).click();
+  await expect(page.getByText(/Tailored resume v1 created/)).toBeVisible();
+  await page.getByRole("button", { name: "Write cover letter" }).click();
+  await expect(page.getByText(/Cover letter v1 created/)).toBeVisible();
+  await page
+    .getByLabel("Screening questions")
+    .fill(["What is your expected CTC?", "Are you legally authorized to work in India?"].join("\n"));
+  await page.getByRole("button", { name: "Draft answers" }).click();
+  await expect(page.getByText(/Review: Legal declaration/)).toBeVisible();
+  await page.getByRole("button", { name: "Add to tracker" }).click();
+  await expect(page.getByText("Status:")).toContainText("draft");
+
+  await page.getByRole("link", { name: "Open in tracker" }).click();
+  await expect(page.getByRole("heading", { name: "Application Tracker", level: 1 })).toBeVisible();
+  const card = page.locator("main section:visible").filter({ has: page.getByTestId("app-status") }).first();
+  await expect(card.getByTestId("app-status")).toHaveText("Draft");
+  await card.getByRole("button", { name: "Run simulated submission" }).click();
+  await expect(card.getByTestId("app-status")).toHaveText("Submitted");
+  await expect(card.getByText("Simulated submission")).toBeVisible();
+  await expect(card.getByText(/Reference MOCK-/)).toBeVisible();
+  await card.getByRole("button", { name: "History" }).click();
+  await expect(card.getByText(/submission → Submitted \(simulated\)/)).toBeVisible();
+});
+
 test("automation is off and paused by default", async () => {
   await page.getByRole("link", { name: "Automation Rules" }).click();
   await expect(page.getByLabel("Automation enabled")).not.toBeChecked();

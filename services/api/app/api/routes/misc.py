@@ -14,6 +14,7 @@ from app.api.routes.auth import _clear_session
 from app.models import Application, ApprovalRequest, AuditLog, Job, JobMatch, Notification
 from app.schemas.auth import DeleteAccountRequest
 from app.security.passwords import verify_password
+from app.services import applications as application_service
 from app.services import data_service, portal_service, profile_service
 
 router = APIRouter(tags=["misc"])
@@ -62,6 +63,7 @@ def overview(user: CurrentUser, db: DbSession) -> dict[str, Any]:
             select(func.count()).select_from(JobMatch).where(JobMatch.user_id == user.id, JobMatch.is_saved.is_(True))
         ),
         "applications": apps_by_status,
+        "follow_ups_due": len(application_service.due_follow_ups(db, user)),
         "pending_approvals": count(
             select(func.count())
             .select_from(ApprovalRequest)

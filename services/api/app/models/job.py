@@ -88,9 +88,11 @@ class Resume(UUIDPk, Timestamps, Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     label: Mapped[str] = mapped_column(String(200), nullable=False)
-    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="master")  # master | tailored
+    # uploaded (your own file) | master (generated from profile) | tailored (generated for a job)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="master")
     parent_resume_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("resumes.id", ondelete="SET NULL"))
     target_role: Mapped[str | None] = mapped_column(String(200))
+    job_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("jobs.id", ondelete="SET NULL"))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -99,3 +101,25 @@ class Resume(UUIDPk, Timestamps, Base):
     # Database-backed storage keeps everything inside the free Postgres plan (no object store).
     content: Mapped[bytes | None] = mapped_column(LargeBinary)
     extracted_text: Mapped[str | None] = mapped_column(Text)
+    # Structured content of generated resumes; DOCX and PDF are rendered from it on download.
+    content_json: Mapped[dict[str, Any] | None] = mapped_column()
+
+
+class Document(UUIDPk, Timestamps, Base):
+    """Generated cover letters and screening-answer drafts, versioned like resumes."""
+
+    __tablename__ = "documents"
+    __table_args__ = (
+        UniqueConstraint("user_id", "sha256"),
+        Index("ix_documents_user_kind_job", "user_id", "kind", "job_id"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("jobs.id", ondelete="SET NULL"))
+    # cover_letter | screening_answers
+    kind: Mapped[str] = mapped_column(String(30), nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    content: Mapped[dict[str, Any]] = mapped_column(default=dict, nullable=False)
+    # sha256 of the canonical content: identical regenerations return the existing version.
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)

@@ -24,7 +24,8 @@ page and `python -m app.cli readiness` flag known risky providers.
 | Feature | Implementation | Cost |
 |---|---|---|
 | AI / matching | Rule-based engine (Phase 2). Optional local **Ollama**. `AI_PROVIDER` only accepts `rule_based` or `ollama`; a paid provider cannot be configured. | $0 |
-| File storage | PostgreSQL `resumes.content` with SHA-256 hashes | Counts against Neon storage |
+| File storage | PostgreSQL `resumes.content` with SHA-256 hashes; uploads capped at 2 MB (`MAX_UPLOAD_BYTES`); generated files are rendered on download, not stored | Counts against Neon storage (1 GB): roughly hundreds of uploaded resumes |
+| DOCX / PDF | python-docx (MIT), ReportLab (BSD), pypdf (BSD); all local | $0 |
 | Background jobs | `task_runs` table: persistent state, heartbeats, interrupted-run recovery, idempotency keys. Runs inside a request or the `app.cli ingest` command; refresh-when-due on page open | $0 |
 | Notifications | In-app + browser Notification API + downloadable Markdown digest (`/api/jobs/digest`). `EMAIL_PROVIDER` only accepts `none`. | $0 |
 | Secrets | Environment variables in Render / Vercel dashboards | $0 |

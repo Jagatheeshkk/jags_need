@@ -22,7 +22,7 @@ not affected by third-party-cookie blocking. `BACKEND_URL` is server-side only (
 |---|---|
 | `core/` | Settings (env only; free-provider validation), scoring weights |
 | `db/` | Declarative base, naming conventions, engine/session |
-| `models/` | 18 tables (the 17 required + `alembic_version` is Alembic's own) |
+| `models/` | The 17 required tables plus `task_runs` and `documents` |
 | `schemas/` | Pydantic request/response models with validation |
 | `repositories/` | Query helpers |
 | `services/` | Profile, portals, readiness, export/delete, audit |
@@ -84,6 +84,47 @@ Refresh (button / due on page open / `python -m app.cli ingest`)
 * The `MatchEngine` protocol allows an optional local-model engine later; the rule-based
   engine stays the default and the fallback.
 
+## Resumes, documents and applications (Phase 3)
+
+**Uploads** (`services/resume_files.py`): PDF or DOCX, max `MAX_UPLOAD_BYTES` (2 MB default).
+The declared extension must match the sniffed content, DOCX archives are checked for zip bombs
+before parsing, encrypted PDFs are refused, filenames are stripped of paths. Files are kept in
+PostgreSQL (`resumes.content`) with their SHA-256; uploading the same bytes again returns the
+existing record.
+
+**Parsing** (`services/resume_parser.py`) is rule-based and only *suggests* values: contact
+details, headline, summary, total years, skills from the taxonomy, employment lines with date
+ranges, certifications. Nothing is applied until the user ticks values and confirms.
+
+**Generation** (`services/documents.py`) uses profile facts only:
+
+| Output | How it is tailored | Guard |
+|---|---|---|
+| Master resume | — | `verify_resume_facts` rejects skills, employers or certifications not in the profile |
+| Tailored resume | your skills that the job asks for listed first; achievements reordered by relevance; one summary line naming matched skills | same guard; job-only skills are never added |
+| Cover letter | job title/company, your latest role, years, matched skills, shared domain, first achievement, notice period | only profile values are inserted; editable, edits saved as new versions |
+| Screening answers | rules per question type | salary, relocation, unknown skills, legal/sensitive questions are left blank or flagged *needs confirmation* |
+
+Versions: each distinct content gets the next version number per label; identical content
+(same SHA-256 of the canonical JSON) returns the existing version. DOCX (python-docx) and PDF
+(ReportLab, all text XML-escaped) are rendered on download from the stored JSON.
+
+**Applications** (`services/applications.py`):
+
+```
+draft ─┬─> prepared ─┬─> submitted ─┬─> interviewing ─┬─> offer ──> withdrawn
+       │             │              │                 └─> rejected
+       └─────────────┘              ├─> rejected / withdrawn
+                                    └─> status_unknown ──> submitted (reconcile) / failed / withdrawn
+```
+
+* One application per job (DB unique constraint); a second create returns 409 with the existing id.
+* `draft/prepared → submitted` requires `confirm_submitted: true` (you applied yourself).
+* *Simulated submission* exists only for synthetic mock-portal jobs and is flagged `is_simulated`.
+* An unconfirmed outcome becomes `status_unknown`; resubmission is refused until reconciled.
+* Every change is an `application_events` row. Follow-ups default to 7 days after submission and
+  raise one in-app notification per application per day when due.
+
 ## Free-tier resilience
 
 * Cold start: frontend maps network errors and 502/503/504 to `BackendUnavailableError`
@@ -100,7 +141,7 @@ Refresh (button / due on page open / `python -m app.cli ingest`)
 
 1. ✅ Repo, auth, migrations, profile, dashboard, mock connector, tests
 2. ✅ Job ingestion, normalisation, dedup, rule-based matching
-3. Resumes, cover letters, DOCX/PDF, application tracking
+3. ✅ Resumes, cover letters, DOCX/PDF, application tracking
 4. Automation rules engine + approval workflow
 5. Per-portal verification and permitted integrations
 6. Deployment hardening, recovery drills

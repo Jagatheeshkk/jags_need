@@ -134,6 +134,7 @@ export interface Overview {
   jobs: { real: number; synthetic: number };
   saved_jobs: number;
   applications: Record<string, number>;
+  follow_ups_due: number;
   pending_approvals: number;
   unread_notifications: number;
   portals: { code: string; name: string; status: ConnectionStatus }[];
@@ -261,4 +262,103 @@ export interface JobList {
   total: number;
   last_refresh: TaskRun | null;
   refresh_due: boolean;
+}
+
+export interface ResumeItem {
+  id: string;
+  label: string;
+  kind: "uploaded" | "master" | "tailored";
+  version: number;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  sha256: string;
+  target_role: string | null;
+  job_id: string | null;
+  parent_resume_id: string | null;
+  created_at: string;
+}
+
+export interface ParsedEmployment {
+  heading: string;
+  start_date: string | null;
+  end_date: string | null;
+  is_current: boolean;
+  date_text: string;
+}
+
+export interface ResumeSuggestions {
+  full_name: string | null;
+  headline: string | null;
+  email: string | null;
+  phone: string | null;
+  links: Record<string, string>;
+  summary: string | null;
+  total_experience_years: number | null;
+  skills: string[];
+  employment: ParsedEmployment[];
+  certifications: string[];
+  education_text: string | null;
+  sections_found: string[];
+}
+
+export interface UploadResult {
+  resume: ResumeItem;
+  duplicate: boolean;
+  suggestions: ResumeSuggestions;
+}
+
+export interface DocumentItem {
+  id: string;
+  kind: "cover_letter" | "screening_answers";
+  title: string;
+  version: number;
+  job_id: string | null;
+  sha256: string;
+  content: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface CoverLetterContent {
+  greeting: string;
+  paragraphs: string[];
+  sign_off: string;
+}
+
+export interface ScreeningAnswer {
+  question: string;
+  answer: string | null;
+  category: string;
+  needs_confirmation: boolean;
+  reason: string;
+}
+
+export interface ApplicationEvent {
+  event_type: string;
+  from_status: string | null;
+  to_status: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ApplicationItem {
+  id: string;
+  job_id: string;
+  job_title: string;
+  company: string;
+  job_is_synthetic: boolean;
+  portal: string | null;
+  status: string;
+  applied_via: "manual" | "simulated" | "portal";
+  is_simulated: boolean;
+  external_reference: string | null;
+  submitted_at: string | null;
+  follow_up_at: string | null;
+  follow_up_due: boolean;
+  resume_id: string | null;
+  cover_letter_id: string | null;
+  notes: string | null;
+  created_at: string;
+  allowed_next: string[];
+  events: ApplicationEvent[];
 }

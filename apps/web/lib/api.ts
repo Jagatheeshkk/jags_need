@@ -49,6 +49,25 @@ export function formatDetail(detail: Detail, fallback: string): string {
     .join("; ");
 }
 
+/** Multipart upload (e.g. a resume file). Same CSRF and error handling as api(). */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      method: "POST",
+      headers: { Accept: "application/json", "X-CSRF-Token": await csrfToken() },
+      credentials: "same-origin",
+      body: form,
+    });
+  } catch {
+    throw new BackendUnavailableError();
+  }
+  if ([502, 503, 504].includes(res.status)) throw new BackendUnavailableError();
+  const data = await res.json().catch(() => undefined);
+  if (!res.ok) throw new ApiError(formatDetail(data?.detail, `Upload failed (${res.status})`), res.status);
+  return data as T;
+}
+
 export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown } = {},

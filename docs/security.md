@@ -26,7 +26,25 @@
 * SSRF: the backend makes no requests to user-supplied URLs. The only outbound call is the
   optional Ollama readiness probe, and a non-local `OLLAMA_BASE_URL` is flagged.
 * Path traversal: no filesystem paths are built from user input (files live in Postgres).
-  Upload validation (type sniffing, size limit) is part of Phase 3.
+  Uploads are validated as described under "Uploaded files".
+
+## Uploaded files
+
+* PDF/DOCX only; size limit enforced while reading (never more than limit + 1 byte is read).
+* Content sniffing must agree with the file extension; anything else is refused.
+* DOCX: entry count and total uncompressed size are checked before parsing (zip-bomb guard).
+* PDF: encrypted files refused; page count limited.
+* No upload is ever written to disk or executed; bytes live in PostgreSQL behind authentication.
+* Download filenames are sanitised before going into `Content-Disposition`.
+* Extracted text is shown as plain text and parsed into *suggestions* only.
+
+## Generated documents
+
+* Built only from profile data; `verify_resume_facts` refuses output containing skills,
+  employers or certifications that are not in the profile.
+* PDF rendering escapes all text, so markup in profile or job text cannot alter the document.
+* Legal declarations, salary commitments, sensitive attestations and unknown questions are
+  never answered automatically.
 
 ## Data handling
 

@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     login_max_attempts: int = Field(default=5, ge=1)
     login_window_seconds: int = Field(default=15 * 60, ge=10)
 
+    # Resume uploads are stored in PostgreSQL; keep them small to stay inside free storage.
+    max_upload_bytes: int = Field(default=2 * 1024 * 1024, ge=64 * 1024, le=5 * 1024 * 1024)
+
     ai_provider: AIProvider = "rule_based"
     ollama_base_url: str = "http://localhost:11434"
     email_provider: EmailProvider = "none"

@@ -9,10 +9,10 @@ import type { User } from "@/lib/types";
 export const NAV: { href: string; label: string; phase?: number }[] = [
   { href: "/", label: "Overview" },
   { href: "/profile", label: "My Profile" },
-  { href: "/resumes", label: "Resume Library", phase: 3 },
+  { href: "/resumes", label: "Resume Library" },
   { href: "/jobs", label: "Job Discovery" },
   { href: "/saved", label: "Saved Jobs" },
-  { href: "/applications", label: "Application Tracker", phase: 3 },
+  { href: "/applications", label: "Application Tracker" },
   { href: "/portals", label: "Portal Connections" },
   { href: "/sync", label: "Profile Sync", phase: 5 },
   { href: "/automation", label: "Automation Rules" },

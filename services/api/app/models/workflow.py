@@ -27,7 +27,10 @@ class Application(UUIDPk, Timestamps, Base):
     job_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
     portal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("portals.id"))
     resume_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("resumes.id", ondelete="SET NULL"))
-    # draft | prepared | pending_approval | submitting | submitted | status_unknown | failed | withdrawn
+    cover_letter_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("documents.id", ondelete="SET NULL"))
+    # manual (you applied yourself) | simulated (mock connector) | portal (verified integration, Phase 5)
+    applied_via: Mapped[str] = mapped_column(String(20), nullable=False, default="manual")
+    # draft | prepared | submitted | interviewing | offer | rejected | withdrawn | status_unknown | failed
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft", index=True)
     idempotency_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     external_reference: Mapped[str | None] = mapped_column(String(200))

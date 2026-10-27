@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, ApiError, BackendUnavailableError, formatDetail } from "@/lib/api";
+import { api, ApiError, apiUpload, BackendUnavailableError, formatDetail } from "@/lib/api";
 
 const json = (status: number, body: unknown) =>
   new Response(body === undefined ? null : JSON.stringify(body), {
@@ -50,6 +50,23 @@ describe("api client", () => {
     expect(err).not.toBeInstanceOf(BackendUnavailableError);
     expect(err.status).toBe(401);
     expect(err.message).toBe("Not authenticated");
+  });
+
+  it("uploads multipart with CSRF and no JSON content type", async () => {
+    fetchMock.mockResolvedValue(json(201, { ok: true }));
+    const form = new FormData();
+    form.append("file", new Blob(["x"]), "cv.pdf");
+    await apiUpload("/resumes/upload", form);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/resumes/upload");
+    expect(init.body).toBe(form);
+    expect(init.headers["X-CSRF-Token"]).toBe("tok123");
+    expect(init.headers["Content-Type"]).toBeUndefined(); // browser sets the multipart boundary
+  });
+
+  it("surfaces upload validation errors", async () => {
+    fetchMock.mockResolvedValue(json(422, { detail: "Only PDF and Word (.docx) resumes are accepted." }));
+    await expect(apiUpload("/resumes/upload", new FormData())).rejects.toThrow("Only PDF and Word");
   });
 
   it("returns undefined for 204", async () => {

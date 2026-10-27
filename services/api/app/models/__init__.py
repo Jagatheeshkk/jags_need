@@ -1,5 +1,5 @@
 from app.db.base import Base
-from app.models.job import Job, JobMatch, JobSource, Resume
+from app.models.job import Document, Job, JobMatch, JobSource, Resume
 from app.models.portal import Portal, PortalConnection
 from app.models.profile import CandidateProfile, CandidateSkill, EmploymentHistory, Skill
 from app.models.user import User
@@ -23,6 +23,7 @@ __all__ = [
     "Base",
     "CandidateProfile",
     "CandidateSkill",
+    "Document",
     "EmploymentHistory",
     "Job",
     "JobMatch",

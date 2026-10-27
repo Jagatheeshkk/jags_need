@@ -108,3 +108,22 @@ def canonical_skill(name: str) -> str:
     if norm in SKILL_SYNONYMS:
         return norm
     return min(found) if len(found) == 1 else norm
+
+
+_ACRONYMS = {"uat", "api", "sdlc", "stlc", "ci", "sql", "hrms", "erp", "qa", "rca"}
+_PROPER = {
+    "typescript": "TypeScript",
+    "fintech": "FinTech",
+    "postman": "Postman",
+    "playwright": "Playwright",
+    "selenium": "Selenium",
+    "python": "Python",
+    "java": "Java",
+}
+
+
+def display_skill(key: str) -> str:
+    """'api testing' -> 'API Testing', 'hrms' -> 'HRMS'."""
+    if key in _PROPER:
+        return _PROPER[key]
+    return " ".join(w.upper() if w in _ACRONYMS else w.capitalize() for w in key.split())

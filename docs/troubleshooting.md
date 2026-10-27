@@ -17,4 +17,9 @@
 | "A refresh is already running" (409) | Another refresh is in progress | Wait. If the server slept mid-run, the run is marked *interrupted* after 10 minutes and a new refresh is allowed. |
 | Refresh finds no jobs | Searches use your preferred roles, keywords and locations; only the mock connector is active | Add preferred roles/locations in My Profile, or widen them. Real portals arrive with Phase 5. |
 | A job scores lower than expected | Missing profile data counts as neutral (0.5), not a match | Open the job and read "Why this score"; fill the fields shown as *unknown*. |
+| "The file content is PDF, but its name ends in .docx" | Extension does not match the real file type | Save the file in its real format, or rename it correctly. |
+| "Password-protected PDFs cannot be read" | Encrypted PDF | Export an unprotected copy, or upload the DOCX. |
+| Resume suggestions miss fields | Rule-based reading of the text | Fill the missing fields in My Profile; scanned (image-only) PDFs have no text to read. |
+| "Add your name to the profile before generating a resume" (409) | Profile has no full name | Set it in My Profile. |
+| "Confirm that you submitted this application…" (400) | Marking a draft as submitted without confirmation | Tick "I submitted this application on the portal myself". |
 | Playwright: `Executable doesn't exist` | Browser not installed | `cd apps/web; npx playwright install chromium` |

@@ -31,7 +31,7 @@ export default function OverviewPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Real job listings" value={data.jobs.real} note="From verified portal integrations" />
         <Stat label="Synthetic sample jobs" value={data.jobs.synthetic} note="Mock connector, not real openings" />
-        <Stat label="Applications tracked" value={totalApps} />
+        <Stat label="Applications tracked" value={totalApps} note={data.follow_ups_due ? `${data.follow_ups_due} follow-up(s) due` : undefined} />
         <Stat label="Pending approvals" value={data.pending_approvals} />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
