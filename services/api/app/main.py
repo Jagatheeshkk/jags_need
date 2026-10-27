@@ -6,7 +6,18 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 
 from app.api.deps import csrf_protect
-from app.api.routes import applications, auth, automation, jobs, misc, portals, profile, resumes, settings
+from app.api.routes import (
+    applications,
+    auth,
+    automation,
+    jobs,
+    misc,
+    portals,
+    profile,
+    profile_sync,
+    resumes,
+    settings,
+)
 from app.core.config import get_settings
 
 logger = logging.getLogger("app")
@@ -66,6 +77,7 @@ def create_app() -> FastAPI:
         resumes.router,
         applications.router,
         automation.router,
+        profile_sync.router,
         settings.router,
         misc.router,
     ):

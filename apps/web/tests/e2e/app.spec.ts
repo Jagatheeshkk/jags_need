@@ -204,6 +204,42 @@ test("rules engine previews, runs and routes doubtful applications to the approv
   await expect(page.getByText("Rules saved")).toBeVisible();
 });
 
+test("portals show verified evidence and a real job can be added by hand", async () => {
+  await page.getByRole("link", { name: "Portal Connections" }).click();
+  const linkedin = page.locator("main section:visible", { hasText: "LinkedIn" }).first();
+  await expect(linkedin.getByText(/^Manual workflows only · checked/)).toBeVisible();
+  await expect(linkedin.getByRole("link", { name: "Search on LinkedIn ↗" })).toHaveAttribute("href", /linkedin\.com\/jobs\/search/);
+  await linkedin.getByText(/Evidence \(\d+\)/).click();
+  await expect(linkedin.getByRole("link", { name: "https://www.linkedin.com/legal/user-agreement" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Job Discovery" }).click();
+  await page.getByRole("button", { name: "Add a job you found" }).click();
+  const form = page.locator("form:visible", { has: page.getByRole("button", { name: "Add and score" }) });
+  await form.getByLabel("Portal").selectOption("naukri");
+  await form.getByLabel("Listing link (https://…)").fill("https://www.naukri.com/job-listings-qa-lead-e2e-123");
+  await form.getByLabel("Job title").fill("QA Lead");
+  await form.getByLabel("Company", { exact: true }).fill("Real Test Employer");
+  await form.getByLabel("Description").fill("Lead functional and regression testing for an HRMS platform.");
+  await form.getByRole("button", { name: "Add and score" }).click();
+  await expect(page.getByRole("heading", { name: "QA Lead", level: 1 })).toBeVisible();
+  await expect(page.getByText("Real Test Employer")).toBeVisible();
+  await expect(page.locator("main :visible").getByText("Synthetic sample", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Why this score" })).toBeVisible();
+});
+
+test("profile sync gives portal text and records only what the user confirms", async () => {
+  await page.getByRole("link", { name: "Profile Sync" }).click();
+  await page.getByRole("tab", { name: "Naukri" }).click();
+  await expect(page.getByTestId("sync-summary")).toHaveText("Never synced: every section is new.");
+  await page.getByRole("button", { name: "Start sync" }).click();
+  await expect(page.getByRole("button", { name: "Confirm updated" })).toBeDisabled();
+  await page.getByLabel("I saved these changes on Naukri myself.").check();
+  await page.getByRole("button", { name: "Confirm updated" }).click();
+  await expect(page.getByText("Marked as updated on the portal.")).toBeVisible();
+  await expect(page.getByTestId("sync-summary")).toContainText("0 section(s) changed since");
+  await expect(page.getByText(/naukri · Updated by you/i)).toBeVisible();
+});
+
 test("readiness reports no paid dependencies", async () => {
   await page.getByRole("link", { name: "Free-Tier Usage & Health" }).click();
   await expect(page.getByText("Paid dependencies:")).toContainText("none");

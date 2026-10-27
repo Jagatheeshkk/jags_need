@@ -7,6 +7,7 @@ Duplicate detection, in order:
 """
 
 import contextlib
+import hashlib
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -195,7 +196,7 @@ def run_refresh(
         filters = filters or filters_for(db, user)
         for connector in connectors or all_connectors():
             if not connector.get_capabilities().search_jobs:
-                stats.portals_skipped[connector.code] = "search not permitted / not verified"
+                stats.portals_skipped[connector.code] = "automated search not permitted (manual portal)"
                 continue
             try:
                 ingest_from(db, portals[connector.code], connector, filters, stats, now)
@@ -235,3 +236,39 @@ def refresh_due(db: Session, user: User, now: datetime | None = None) -> bool:
         return True
     finished = last.finished_at if last.finished_at.tzinfo else last.finished_at.replace(tzinfo=UTC)
     return (now or datetime.now(UTC)) - finished >= timedelta(hours=profile.refresh_interval_hours)
+
+
+class CaptureRejected(ValueError):
+    pass
+
+
+def capture_manual(db: Session, user: User, portal_code: str, pj_fields: dict) -> tuple[Job, Outcome]:
+    """Store a listing the user copied from a manual-only portal.
+
+    The URL is kept as a link for the user and is never requested by the server. It must belong to
+    the named portal, so listings cannot be mislabelled.
+    """
+    from app.connectors.base import ManualPortalConnector
+    from app.connectors.registry import get_connector
+
+    connector = get_connector(portal_code)
+    if not isinstance(connector, ManualPortalConnector):
+        raise CaptureRejected("Manual capture is for real portals (LinkedIn, Indeed, Naukri, Instahyre, Cutshort).")
+    url = pj_fields["url"]
+    if not connector.owns_url(url):
+        raise CaptureRejected(f"The link must be an https:// address on {', '.join(connector.policy.domains)}.")
+    canon = canonical_url(url) or url
+    external_id = "url:" + hashlib.sha256(canon.encode()).hexdigest()[:32]
+    pj = PortalJob(external_id=external_id, is_synthetic=False, **pj_fields)
+    portal = portal_service.ensure_portals(db)[portal_code]
+    now = datetime.now(UTC)
+    with db.begin_nested():
+        outcome = upsert(db, portal, pj, now)
+    db.commit()
+    src = db.scalars(
+        select(JobSource).where(JobSource.portal_id == portal.id, JobSource.external_id == external_id)
+    ).one()
+    job = db.get(Job, src.job_id)
+    assert job is not None
+    match_service.rescore_all(db, user)
+    return job, outcome

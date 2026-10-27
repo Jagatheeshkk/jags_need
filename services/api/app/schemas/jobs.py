@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 Feedback = Literal["good_match", "poor_match"]
 
@@ -80,3 +80,32 @@ class SavedIn(BaseModel):
 
 class FeedbackIn(BaseModel):
     feedback: Feedback | None
+
+
+class ManualJobIn(BaseModel):
+    """A listing the user copied from a manual-only portal. The URL is never fetched."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    portal: Literal["linkedin", "indeed", "naukri", "instahyre", "cutshort"]
+    url: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^https://", max_length=1000)]
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=300)]
+    company: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    location: str | None = Field(default=None, max_length=200)
+    work_arrangement: Literal["remote", "hybrid", "onsite"] | None = None
+    description: str | None = Field(default=None, max_length=20000)
+    skills: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]] = Field(
+        default_factory=list, max_length=50
+    )
+    salary_min: int | None = Field(default=None, ge=0)
+    salary_max: int | None = Field(default=None, ge=0)
+    salary_currency: Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")] | None = None
+    experience_min: int | None = Field(default=None, ge=0, le=60)
+    experience_max: int | None = Field(default=None, ge=0, le=60)
+    posted_at: datetime | None = None
+    expires_at: datetime | None = None
+
+
+class ManualJobOut(BaseModel):
+    job_id: uuid.UUID
+    outcome: Literal["created", "updated", "merged"]

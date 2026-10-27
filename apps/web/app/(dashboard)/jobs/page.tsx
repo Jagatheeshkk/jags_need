@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { AddJobForm } from "@/components/AddJobForm";
 import { JobCard } from "@/components/JobBits";
 import { Alert, Button, Card, Field, inputClass, Loading, PageHeader } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -88,9 +89,12 @@ export default function JobsPage() {
         }
       />
       <Alert kind="warn">
-        Only the mock connector is active, so every job here is synthetic sample data. Real portals stay off until their
-        permitted integration options are verified (Phase 5).
+        Automatic collection uses only the mock connector (synthetic sample data). The real portals do not permit automated
+        access, so add real jobs you find there with the form below; they are scored the same way.
       </Alert>
+      <div className="mt-3">
+        <AddJobForm />
+      </div>
       <div className="mt-3 space-y-2">
         {list.data?.last_refresh && <RunSummary run={list.data.last_refresh} />}
         {error && <Alert kind="error">{error}</Alert>}

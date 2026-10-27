@@ -44,7 +44,8 @@ def ensure_portals(db: Session) -> dict[str, Portal]:
 
 
 def _default_status(mode: IntegrationMode) -> str:
-    return "unsupported" if mode == IntegrationMode.UNVERIFIED else "not_connected"
+    # Automation is unsupported for unverified and manual-only portals; the UI offers manual workflows.
+    return "unsupported" if mode in {IntegrationMode.UNVERIFIED, IntegrationMode.MANUAL} else "not_connected"
 
 
 def list_for_user(db: Session, user: User) -> list[PortalOut]:

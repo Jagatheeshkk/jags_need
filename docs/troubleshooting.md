@@ -26,4 +26,7 @@
 | Everything goes to the Approval Queue | Auto-apply is off for the portal, or the portal cannot submit | Expected for real portals. For the mock portal, tick Auto-apply. |
 | A job is skipped with "You rejected this application earlier" | Rejections are permanent for that job | Create the application manually from the job page if you change your mind. |
 | "Confirm that you reviewed…" (400) when approving | Approval needs explicit confirmation | Tick "I reviewed the job, the documents and every flagged answer". |
+| "The link must be an https:// address on …" when adding a job | The pasted URL is not on that portal's domain, or is `http://` | Copy the listing URL from the portal's address bar and choose the matching portal. |
+| Search link opens the portal home page | Instahyre and Cutshort have no confirmed search URL format | Search on the portal's page directly. |
+| Why can't the app apply on LinkedIn/Naukri for me? | Their terms do not permit automated access (Phase 5) | Use Approve in the queue to prepare it, apply on the portal, then mark it submitted in the tracker. |
 | Playwright: `Executable doesn't exist` | Browser not installed | `cd apps/web; npx playwright install chromium` |

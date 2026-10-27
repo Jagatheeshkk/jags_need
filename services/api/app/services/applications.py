@@ -75,7 +75,7 @@ def create(
     _check_owned(db, user, Resume, resume_id)
     _check_owned(db, user, Document, cover_letter_id)
     first_source = db.scalars(
-        select(JobSource).where(JobSource.job_id == job_id).order_by(JobSource.fetched_at)
+        select(JobSource).where(JobSource.job_id == job_id).order_by(JobSource.fetched_at, JobSource.external_id)
     ).first()
     app = Application(
         user_id=user.id,

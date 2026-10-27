@@ -193,7 +193,7 @@ def test_daily_limit(env: TestClient) -> None:
 
 def test_preferred_resume_is_used(env: TestClient) -> None:
     rid = env.post("/api/resumes/generate", json={}).json()["resume"]["id"]
-    set_rules(env, **AUTO, preferred_resume_by_role={"Automation": rid})
+    set_rules(env, **AUTO, max_applications_per_day=50, preferred_resume_by_role={"Automation": rid})
     env.post("/api/automation/run")
     app = next(a for a in env.get("/api/applications").json() if a["job_title"] == "Test Automation Lead")
     assert app["resume_id"] == rid

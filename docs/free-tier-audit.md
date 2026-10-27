@@ -38,13 +38,11 @@ No email provider is configured. No option was verified as free without a mandat
 for this use, so email stays disabled. Use in-app notifications, browser notifications, and the
 downloadable digest.
 
-## Job portals (Phase 5, not verified yet)
+## Job portals
 
-No portal integration is active. Naukri, LinkedIn, Indeed, Instahyre and Cutshort are registered
-as **unverified** connectors that refuse every operation. Before any real integration, Phase 5
-must record for each portal: official API availability, terms of service on automated access,
-and permitted operations. Where automation is not permitted, the app provides manual workflows
-only. No scraping, CAPTCHA/MFA bypass, or anti-bot evasion will be implemented.
+Verified in Phase 5 (2026-10-28): no portal offers a free or paid job-seeker API, and their
+terms forbid or do not permit automated access. All five are manual-only, which also means no
+browser-automation service is needed. Details: [portal-integrations.md](portal-integrations.md).
 
 ## Re-verification checklist
 

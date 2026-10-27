@@ -4,12 +4,17 @@ A connector must never report success for an operation that did not actually suc
 Unsupported operations raise ConnectorNotSupported so callers fall back to a manual workflow.
 """
 
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+from urllib.parse import urlencode, urlsplit
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from app.connectors.policies import PortalPolicy
 
 
 class IntegrationMode(StrEnum):
@@ -29,6 +34,11 @@ class Capabilities(BaseModel):
     submit_application: bool = False
     get_application_status: bool = False
     notes: str = ""
+    # Phase 5: what the user can still do by hand, and the evidence behind the decision.
+    manual_workflows: list[str] = Field(default_factory=list)
+    verification: str | None = None
+    verified_on: str | None = None
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class JobFilters(BaseModel):
@@ -151,3 +161,47 @@ class UnverifiedPortalConnector(PortalConnector):
 
     def get_application_status(self, application_id: str) -> OperationResult:
         raise self._refuse("get_application_status")
+
+
+class ManualPortalConnector(UnverifiedPortalConnector):
+    """A real portal whose terms do not permit automated access (verified in Phase 5).
+
+    Every automated operation is refused. The app offers manual workflows instead: a link that
+    opens the portal's own search in the user's browser, and capture of listings the user pastes.
+    The portal is never contacted by the server.
+    """
+
+    def __init__(self, policy: "PortalPolicy") -> None:
+        super().__init__(policy.code, policy.name, policy.base_url)
+        self.policy = policy
+
+    def get_capabilities(self) -> Capabilities:
+        from app.connectors.policies import MANUAL_WORKFLOWS, VERIFIED_ON
+
+        return Capabilities(
+            mode=IntegrationMode.MANUAL,
+            notes=self.policy.summary,
+            manual_workflows=list(MANUAL_WORKFLOWS),
+            verification=self.policy.verification,
+            verified_on=VERIFIED_ON,
+            evidence=[{"url": e.url, "finding": e.finding, "retrieved": e.retrieved} for e in self.policy.evidence],
+        )
+
+    def owns_url(self, url: str) -> bool:
+        host = (urlsplit(url).hostname or "").lower()
+        return urlsplit(url).scheme == "https" and any(host == d or host.endswith("." + d) for d in self.policy.domains)
+
+    def search_url(self, keywords: str, location: str | None = None) -> str:
+        """The portal's own search page, opened in the user's browser (the server never requests it)."""
+        kw, loc = keywords.strip(), (location or "").strip()
+        if self.code == "linkedin":
+            return f"https://www.linkedin.com/jobs/search/?{urlencode({'keywords': kw, 'location': loc})}"
+        if self.code == "indeed":
+            return f"https://in.indeed.com/jobs?{urlencode({'q': kw, 'l': loc})}"
+        if self.code == "naukri":
+            slug = re.sub(r"[^a-z0-9]+", "-", kw.lower()).strip("-") or "qa"
+            city = re.sub(r"[^a-z0-9]+", "-", loc.lower()).strip("-")
+            return f"https://www.naukri.com/{slug}-jobs" + (f"-in-{city}" if city else "")
+        if self.code == "cutshort":
+            return "https://cutshort.io/jobs"
+        return self.policy.base_url  # no documented search URL: open the site

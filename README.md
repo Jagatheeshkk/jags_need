@@ -3,7 +3,7 @@
 A personal job-search and profile-management assistant that runs entirely on free tiers or
 your own machine. No paid APIs, hosting, storage, email, or browser-automation services.
 
-**Status: Phases 1–4 complete.**
+**Status: Phases 1–5 complete.**
 * Phase 1: authentication, database + migrations, candidate profile, dashboard, settings,
   mock portal connector with synthetic data.
 * Phase 2: job collection, normalisation, duplicate detection, freshness/expiry, rule-based
@@ -14,8 +14,10 @@ your own machine. No paid APIs, hosting, storage, email, or browser-automation s
   application tracker with status history, follow-ups and duplicate prevention.
 * Phase 4: automation rules engine (dry-run preview, manual/after-refresh runs, daily cap,
   per-portal switches, global pause) and an approval queue for anything that needs a human.
-Real portal integrations are **not** active: every real portal is shown as *Unsupported* until
-its permitted integration options are verified (Phase 5).
+* Phase 5: each portal's official terms and APIs were checked. None permits automated access for
+  job seekers, so LinkedIn, Indeed, Naukri, Instahyre and Cutshort are **manual workflows only**:
+  search links, jobs you paste in (scored and de-duplicated), portal-ready profile text, and
+  applications you submit yourself. See [docs/portal-integrations.md](docs/portal-integrations.md).
 
 ## Stack
 
@@ -67,6 +69,7 @@ compose.yaml         Local stack (Postgres + API + web)
 * [Deployment (all free)](docs/deployment.md)
 * [Security](docs/security.md)
 * [Free-tier audit](docs/free-tier-audit.md)
+* [Portal integrations (evidence)](docs/portal-integrations.md)
 * [Troubleshooting](docs/troubleshooting.md)
 
 ## Principles

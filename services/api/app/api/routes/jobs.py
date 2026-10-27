@@ -13,6 +13,8 @@ from app.schemas.jobs import (
     JobList,
     JobSourceOut,
     JobSummary,
+    ManualJobIn,
+    ManualJobOut,
     MatchOut,
     SavedIn,
     TaskRunOut,
@@ -140,6 +142,31 @@ def refresh(user: CurrentUser, db: DbSession, only_if_due: bool = False) -> Task
         return ingestion.run_refresh(db, user, trigger="scheduled" if only_if_due else "manual")
     except tasks.TaskAlreadyRunning as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="A refresh is already running") from exc
+
+
+@router.post("/manual", response_model=ManualJobOut, status_code=status.HTTP_201_CREATED)
+def add_manual_job(
+    body: ManualJobIn, request: Request, response: Response, user: CurrentUser, db: DbSession
+) -> ManualJobOut:
+    """Add a real listing you found on a manual-only portal (the server never visits the link)."""
+    fields = body.model_dump(exclude={"portal"})
+    try:
+        job, outcome = ingestion.capture_manual(db, user, body.portal, fields)
+    except ingestion.CaptureRejected as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+    audit.record(
+        db,
+        "job.captured_manually",
+        user_id=user.id,
+        entity_type="job",
+        entity_id=job.id,
+        details={"portal": body.portal, "outcome": outcome},
+        request=request,
+    )
+    db.commit()
+    if outcome != "created":
+        response.status_code = status.HTTP_200_OK
+    return ManualJobOut(job_id=job.id, outcome=outcome)
 
 
 @router.post("/rescore")

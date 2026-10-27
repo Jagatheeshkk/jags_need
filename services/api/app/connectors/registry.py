@@ -1,21 +1,13 @@
-from app.connectors.base import PortalConnector, UnverifiedPortalConnector
+from app.connectors.base import ManualPortalConnector, PortalConnector
 from app.connectors.mock import MockConnector
+from app.connectors.policies import POLICIES
 
-# Real portals stay "unverified" (no automated access) until Phase 5 confirms each one's
-# officially permitted integration options and terms.
-_REAL_PORTALS = [
-    ("naukri", "Naukri", "https://www.naukri.com"),
-    ("linkedin", "LinkedIn", "https://www.linkedin.com"),
-    ("indeed", "Indeed", "https://www.indeed.com"),
-    ("instahyre", "Instahyre", "https://www.instahyre.com"),
-    ("cutshort", "Cutshort", "https://cutshort.io"),
-]
+# Real portals are manual-only: Phase 5 verified that none of them permits automated access
+# for job seekers (see connectors/policies.py and docs/portal-integrations.md).
 
 
 def _build() -> dict[str, PortalConnector]:
-    connectors: dict[str, PortalConnector] = {
-        code: UnverifiedPortalConnector(code, name, url) for code, name, url in _REAL_PORTALS
-    }
+    connectors: dict[str, PortalConnector] = {code: ManualPortalConnector(p) for code, p in POLICIES.items()}
     connectors["mock"] = MockConnector()
     return connectors
 

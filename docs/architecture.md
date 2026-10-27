@@ -156,6 +156,22 @@ check as `pass`, `fail` or `review`:
 * Pending approvals expire after 7 days, when the listing expires, or when the application was
   settled another way.
 
+## Portal integrations (Phase 5)
+
+Real portals use `ManualPortalConnector` (`connectors/base.py`), built from verified policies in
+`connectors/policies.py`. Every automated operation raises `ConnectorNotSupported`; capabilities
+expose `mode: manual`, the manual workflows, the verification status and the evidence URLs.
+
+* `GET /api/portals/{code}/search-link`: link to the portal's own search (opened by the browser).
+* `POST /api/jobs/manual`: user-pasted listing; URL must be `https://` on the portal's domain;
+  goes through `ingestion.upsert` (dedup and scoring); never fetched.
+* `services/profile_sync.py` + `/api/profile-sync/*`: per-section content from the profile,
+  change detection against the last confirmed sync, `manual_required → manual_completed` only on
+  explicit confirmation; the mock connector alone supports a simulated automated update.
+* Automation already routes real-portal jobs to approval because `submit_application` is false.
+
+Evidence and decisions: [portal-integrations.md](portal-integrations.md).
+
 ## Free-tier resilience
 
 * Cold start: frontend maps network errors and 502/503/504 to `BackendUnavailableError`
@@ -174,5 +190,5 @@ check as `pass`, `fail` or `review`:
 2. ✅ Job ingestion, normalisation, dedup, rule-based matching
 3. ✅ Resumes, cover letters, DOCX/PDF, application tracking
 4. ✅ Automation rules engine + approval workflow
-5. Per-portal verification and permitted integrations
+5. ✅ Per-portal verification and permitted integrations (all manual-only)
 6. Deployment hardening, recovery drills

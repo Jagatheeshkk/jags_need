@@ -99,6 +99,10 @@ export interface Capabilities {
   submit_application: boolean;
   get_application_status: boolean;
   notes: string;
+  manual_workflows: string[];
+  verification: "terms_reviewed" | "terms_unavailable" | null;
+  verified_on: string | null;
+  evidence: { url: string; finding: string; retrieved: boolean }[];
 }
 
 export interface Portal {
@@ -404,4 +408,35 @@ export interface ApprovalItem {
     outcome?: string;
     decision_note?: string | null;
   };
+}
+
+export interface SyncField {
+  key: string;
+  label: string;
+  value: string;
+  chars: number;
+  changed: boolean;
+}
+
+export interface SyncPreview {
+  portal: string;
+  portal_name: string;
+  automated: boolean;
+  simulated: boolean;
+  fields: SyncField[];
+  changed: string[];
+  last_synced_at: string | null;
+  content_hash: string;
+  instructions: string[];
+}
+
+export interface SyncRun {
+  id: string;
+  portal: string;
+  status: "manual_required" | "manual_completed" | "pending" | "succeeded" | "failed" | "cancelled";
+  preview: { changed?: string[] };
+  result: Record<string, unknown>;
+  attempts: number;
+  created_at: string;
+  finished_at: string | null;
 }

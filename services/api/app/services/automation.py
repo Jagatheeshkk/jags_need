@@ -114,7 +114,8 @@ def submitted_today(db: Session, user: User, now: datetime) -> int:
 
 
 def _job_portal(db: Session, job: Job) -> Portal | None:
-    src = db.scalars(select(JobSource).where(JobSource.job_id == job.id).order_by(JobSource.fetched_at)).first()
+    stmt = select(JobSource).where(JobSource.job_id == job.id).order_by(JobSource.fetched_at, JobSource.external_id)
+    src = db.scalars(stmt).first()
     return db.get(Portal, src.portal_id) if src else None
 
 
@@ -257,8 +258,14 @@ def evaluate(db: Session, user: User, ctx: Context, job: Job, match: JobMatch | 
             d.add("preferred_resume", "review", problem)
         d.resume_id = str(resume.id) if resume else None
         if connector is not None and connector.get_capabilities().prepare_application:
-            prep = connector.prepare_application(_external_id(db, job, portal), d.resume_id or "")
-            d.questions = [str(q) for q in prep.data.get("questions", [])][:30]
+            # A merged job can have several listings on one portal (e.g. a repost). Ask every one,
+            # in a fixed order, so no screening question is missed.
+            for external_id in _external_ids(db, job, portal):
+                prep = connector.prepare_application(external_id, d.resume_id or "")
+                for q in prep.data.get("questions", []):
+                    if str(q) not in d.questions:
+                        d.questions.append(str(q))
+            d.questions = d.questions[:30]
         if d.questions:
             answers = documents.build_screening_answers(ctx.profile, d.questions, job)["answers"]
             flagged = [a for a in answers if a["needs_confirmation"]]
@@ -273,11 +280,15 @@ def evaluate(db: Session, user: User, ctx: Context, job: Job, match: JobMatch | 
     return d
 
 
-def _external_id(db: Session, job: Job, portal: Portal | None) -> str:
+def _external_ids(db: Session, job: Job, portal: Portal | None) -> list[str]:
     if portal is None:
-        return ""
-    src = db.scalars(select(JobSource).where(JobSource.job_id == job.id, JobSource.portal_id == portal.id)).first()
-    return src.external_id if src else ""
+        return []
+    stmt = (
+        select(JobSource.external_id)
+        .where(JobSource.job_id == job.id, JobSource.portal_id == portal.id)
+        .order_by(JobSource.fetched_at, JobSource.external_id)
+    )
+    return list(db.scalars(stmt))
 
 
 def candidates(db: Session, user: User) -> list[tuple[Job, JobMatch | None]]:

@@ -14,7 +14,7 @@ export const NAV: { href: string; label: string; phase?: number }[] = [
   { href: "/saved", label: "Saved Jobs" },
   { href: "/applications", label: "Application Tracker" },
   { href: "/portals", label: "Portal Connections" },
-  { href: "/sync", label: "Profile Sync", phase: 5 },
+  { href: "/sync", label: "Profile Sync" },
   { href: "/automation", label: "Automation Rules" },
   { href: "/approvals", label: "Approval Queue" },
   { href: "/notifications", label: "Notifications" },

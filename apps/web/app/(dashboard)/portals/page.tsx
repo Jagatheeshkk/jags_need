@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, Button, Card, Loading, PageHeader } from "@/components/ui";
@@ -16,6 +17,13 @@ const CAPS: [keyof Capabilities, string][] = [
   ["submit_application", "Submit application"],
   ["get_application_status", "Application status"],
 ];
+
+const WORKFLOWS: Record<string, string> = {
+  search_link: "Open the portal's own search in your browser",
+  manual_job_capture: "Add listings you find there (Job Discovery → Add a job you found)",
+  profile_content: "Copy portal-ready profile text (Profile Sync)",
+  manual_application_tracking: "Apply yourself, then confirm it in the Application Tracker",
+};
 
 export default function PortalsPage() {
   const { data, error, loading, sleeping, setData } = useApi<Portal[]>("/portals");
@@ -42,42 +50,96 @@ export default function PortalsPage() {
     <>
       <PageHeader
         title="Portal Connections"
-        description="Real portals stay 'Unsupported' until their official integration options and terms are verified (Phase 5). No automated access is attempted before then."
+        description="Each portal's official terms and developer documentation were checked. None permits automated access for job seekers, so real portals work through manual workflows only; the server never contacts them."
       />
-      {msg && <Alert kind="error">{msg}</Alert>}
+      {msg && <div className="mb-4"><Alert kind="error">{msg}</Alert></div>}
       <div className="grid gap-4 lg:grid-cols-2">
-        {data.map((p) => (
-          <Card key={p.code}>
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div>
-                <h2 className="font-semibold">{p.name}</h2>
-                {p.base_url && !p.base_url.endsWith(".invalid") && (
-                  <a href={p.base_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline">
-                    Open {p.name} manually ↗
-                  </a>
-                )}
+        {data.map((p) => {
+          const caps = p.capabilities;
+          const manual = caps.mode === "manual";
+          return (
+            <Card key={p.code}>
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="font-semibold">{p.name}</h2>
+                  <p className="text-xs text-muted">
+                    {manual ? "Manual workflows only" : caps.mode === "mock" ? "Synthetic test portal" : caps.mode}
+                    {caps.verified_on && ` · checked ${caps.verified_on}`}
+                    {caps.verification === "terms_unavailable" && " · terms could not be retrieved"}
+                  </p>
+                </div>
+                <StatusBadge status={p.status} />
               </div>
-              <StatusBadge status={p.status} />
-            </div>
-            <p className="mb-3 text-sm text-muted">{p.capabilities.notes}</p>
-            <ul className="mb-3 grid grid-cols-2 gap-1 text-xs">
-              {CAPS.map(([k, label]) => (
-                <li key={k} className={p.capabilities[k] ? "text-emerald-700 dark:text-emerald-300" : "text-muted"}>
-                  {p.capabilities[k] ? "✓" : "–"} {label}
-                </li>
-              ))}
-            </ul>
-            <div className="flex items-center justify-between text-xs text-muted">
-              <span>
-                Last checked: {p.last_checked_at ? new Date(p.last_checked_at).toLocaleString() : "never"}
-              </span>
-              <Button variant="secondary" onClick={() => check(p.code)} disabled={busy === p.code}>
-                {busy === p.code ? "Checking…" : "Check status"}
-              </Button>
-            </div>
-          </Card>
-        ))}
+              <p className="mb-3 text-sm text-muted">{caps.notes}</p>
+
+              <p className="mb-1 text-xs font-medium">Automated operations</p>
+              <ul className="mb-3 grid grid-cols-2 gap-1 text-xs">
+                {CAPS.map(([k, label]) => (
+                  <li key={k} className={caps[k] ? "text-emerald-700 dark:text-emerald-300" : "text-muted"}>
+                    {caps[k] ? "✓" : "–"} {label}
+                  </li>
+                ))}
+              </ul>
+
+              {manual && (
+                <>
+                  <p className="mb-1 text-xs font-medium">What you can do</p>
+                  <ul className="mb-3 list-disc pl-5 text-xs">
+                    {caps.manual_workflows.map((w) => <li key={w}>{WORKFLOWS[w] ?? w}</li>)}
+                  </ul>
+                  <details className="mb-3 text-xs">
+                    <summary className="cursor-pointer font-medium">Evidence ({caps.evidence.length})</summary>
+                    <ul className="mt-2 space-y-2">
+                      {caps.evidence.map((e, i) => (
+                        <li key={i}>
+                          <a href={e.url} target="_blank" rel="noopener noreferrer" className="break-all text-brand hover:underline">{e.url}</a>
+                          <p className="text-muted">{e.finding}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                <span>Last checked: {p.last_checked_at ? new Date(p.last_checked_at).toLocaleString() : "never"}</span>
+                <div className="flex gap-2">
+                  {manual && (
+                    <>
+                      <SearchLink code={p.code} name={p.name} />
+                      <Link href="/sync" className="rounded-lg border border-line px-3.5 py-2 text-sm font-medium hover:bg-subtle">
+                        Profile text
+                      </Link>
+                    </>
+                  )}
+                  {!manual && (
+                    <Button variant="secondary" onClick={() => check(p.code)} disabled={busy === p.code}>
+                      {busy === p.code ? "Checking…" : "Check status"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
     </>
+  );
+}
+
+/** Link to the portal's own search for your preferred role and location; your browser opens it. */
+function SearchLink({ code, name }: { code: string; name: string }) {
+  const { data } = useApi<{ url: string; keywords: string; location: string | null }>(`/portals/${code}/search-link`);
+  if (!data) return null;
+  return (
+    <a
+      href={data.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Search ${name} for "${data.keywords}"${data.location ? ` in ${data.location}` : ""}`}
+      className="rounded-lg border border-line px-3.5 py-2 text-sm font-medium hover:bg-subtle"
+    >
+      Search on {name} ↗
+    </a>
   );
 }

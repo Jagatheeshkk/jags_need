@@ -15,11 +15,25 @@ REAL = {"naukri", "linkedin", "indeed", "instahyre", "cutshort"}
 def test_portals_listed_honestly(owner: TestClient) -> None:
     portals = {p["code"]: p for p in owner.get("/api/portals").json()}
     assert set(portals) == REAL | {"mock"}
+    automated = [
+        "search_jobs",
+        "get_job_details",
+        "get_profile",
+        "update_profile",
+        "prepare_application",
+        "submit_application",
+        "get_application_status",
+    ]
     for code in REAL:
-        assert portals[code]["status"] == "unsupported"
+        assert portals[code]["status"] == "unsupported"  # no automation
         caps = portals[code]["capabilities"]
-        assert caps["mode"] == "unverified"
-        assert not any(v for k, v in caps.items() if k not in {"mode", "notes"})
+        assert caps["mode"] == "manual"
+        assert not any(caps[k] for k in automated)
+        assert "manual_job_capture" in caps["manual_workflows"]
+        assert caps["verified_on"] and caps["evidence"]
+        assert all(e["url"].startswith("https://") for e in caps["evidence"])
+    assert portals["linkedin"]["capabilities"]["verification"] == "terms_reviewed"
+    assert portals["naukri"]["capabilities"]["verification"] == "terms_unavailable"
     assert portals["mock"]["capabilities"]["mode"] == "mock"
 
 

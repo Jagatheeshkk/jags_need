@@ -81,5 +81,7 @@ every automated action still goes through the rule engine and approval checks.
 
 ## Portal automation
 
-No CAPTCHA, MFA or anti-bot bypass, ever. No portal passwords stored. Real portal operations
-stay disabled until Phase 5 verifies what each portal permits.
+No CAPTCHA, MFA or anti-bot bypass, ever. No portal passwords stored. Phase 5 verified that no
+portal permits automated job-seeker access, so the server never contacts any real portal:
+pasted listing URLs are stored as links only (and must be `https://` on the portal's domain),
+search links are opened by the user's browser, and profile updates are done by the user.
