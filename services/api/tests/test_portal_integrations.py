@@ -280,3 +280,48 @@ def test_refresh_with_real_jobs_keeps_them(owner: TestClient, db_factory) -> Non
         real = db.scalar(select(func.count()).select_from(Job).where(Job.is_synthetic.is_(False)))
         runs = db.scalar(select(func.count()).select_from(ProfileSyncRun))
     assert real == 1 and runs == 0
+
+
+# ---------- regression: defects found in exploratory testing (2026-10-28) ----------
+
+BOILERPLATE = (
+    "We are hiring a QA Lead to own regression and UAT for our HRMS product. Playwright and Postman experience."
+)
+
+
+def _naukri(owner: TestClient, n: int, city: str, portal: str = "naukri", url: str | None = None):
+    return owner.post(
+        "/api/jobs/manual",
+        json={
+            "portal": portal,
+            "url": url or f"https://www.naukri.com/job-listings-qa-lead-{n}",
+            "title": "QA Lead",
+            "company": "Infosys",
+            "location": city,
+            "description": BOILERPLATE,
+        },
+    )
+
+
+def test_def01_same_role_in_different_cities_is_not_merged(owner: TestClient, db_factory) -> None:
+    ids = [_naukri(owner, n, city).json() for n, city in [(1, "Chennai"), (2, "Pune"), (3, "Bengaluru")]]
+    assert [x["outcome"] for x in ids] == ["created", "created", "created"]
+    assert len({x["job_id"] for x in ids}) == 3
+    locations = {j["location"] for j in owner.get("/api/jobs?include_synthetic=false").json()["items"]}
+    assert locations == {"Chennai", "Pune", "Bengaluru"}
+
+
+def test_def01_same_opening_on_another_portal_still_merges(owner: TestClient) -> None:
+    first = _naukri(owner, 1, "Chennai").json()
+    # Same city written differently (case, trailing state) still counts as the same location.
+    copy = _naukri(owner, 0, " chennai ", portal="linkedin", url="https://www.linkedin.com/jobs/view/42").json()
+    assert copy["outcome"] == "merged" and copy["job_id"] == first["job_id"]
+
+
+def test_def02_upper_case_https_link_accepted_and_deduplicated(owner: TestClient) -> None:
+    r = owner.post("/api/jobs/manual", json={**LISTING, "url": "HTTPS://WWW.LINKEDIN.COM/jobs/view/77"})
+    assert r.status_code == 201
+    again = owner.post("/api/jobs/manual", json={**LISTING, "url": "https://www.linkedin.com/jobs/view/77"})
+    assert again.json() == {"job_id": r.json()["job_id"], "outcome": "updated"}
+    for bad in ("HTTP://www.linkedin.com/jobs/view/1", "http://www.linkedin.com/jobs/view/1"):
+        assert owner.post("/api/jobs/manual", json={**LISTING, "url": bad}).status_code == 422

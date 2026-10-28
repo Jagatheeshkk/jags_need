@@ -98,7 +98,7 @@ export function AddJobForm() {
           </select>
         </Field>
         <Field label="Listing link (https://…)">
-          <input className={inputClass} required pattern="https://.+" value={f.url} onChange={set("url")} />
+          <input className={inputClass} required pattern="[Hh][Tt][Tt][Pp][Ss]://.+" value={f.url} onChange={set("url")} />
         </Field>
         <Field label="Job title">
           <input className={inputClass} required minLength={2} value={f.title} onChange={set("title")} />

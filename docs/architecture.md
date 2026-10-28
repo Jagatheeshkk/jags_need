@@ -59,7 +59,7 @@ Refresh (button / due on page open / `python -m app.cli ingest`)
               └─ normalise + de-duplicate        services/normalize.py, services/ingestion.py
                    1. portal + external id   -> update
                    2. canonical URL          -> merge as extra source
-                   3. same company key and title/description similarity -> merge (repost)
+                   3. same company key AND location, title/description similarity -> merge (repost)
       └─ mark expired listings
       └─ rescore changed matches                 services/match_service.py
       └─ "N new jobs" notification (deduped per run)

@@ -203,3 +203,11 @@ def test_inputs_hash_changes_with_profile() -> None:
     a = RuleBasedMatchEngine().score(make_profile(), make_job()).inputs_hash
     b = RuleBasedMatchEngine().score(make_profile(salary_min=1), make_job()).inputs_hash
     assert a != b
+
+
+def test_location_key() -> None:
+    from app.services.normalize import location_key
+
+    assert location_key(" Bengaluru,  Karnataka ") == "bengaluru karnataka"
+    assert location_key("CHENNAI") == location_key("chennai") == "chennai"
+    assert location_key(None) == location_key("") == ""

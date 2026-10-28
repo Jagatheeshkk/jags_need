@@ -88,7 +88,8 @@ class ManualJobIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     portal: Literal["linkedin", "indeed", "naukri", "instahyre", "cutshort"]
-    url: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^https://", max_length=1000)]
+    # Scheme is case-insensitive (RFC 3986); hosts are checked by the connector after lower-casing.
+    url: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^(?i:https)://", max_length=1000)]
     title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=300)]
     company: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
     location: str | None = Field(default=None, max_length=200)

@@ -50,6 +50,11 @@ def company_key(name: str) -> str:
     return " ".join(words)
 
 
+def location_key(location: str | None) -> str:
+    """'Bengaluru, Karnataka ' -> 'bengaluru karnataka'; missing -> ''."""
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", (location or "").lower()).split())
+
+
 def canonical_url(url: str | None) -> str | None:
     """Lower-case scheme/host, drop fragments, tracking parameters and trailing slashes."""
     if not url:

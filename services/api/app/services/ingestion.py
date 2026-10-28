@@ -3,7 +3,7 @@
 Duplicate detection, in order:
   1. same portal + external id      -> same listing seen again (update)
   2. same canonical URL             -> same listing from another feed (merge as a new source)
-  3. same normalised company and near-identical title + description -> repost (merge)
+  3. same normalised company and location, near-identical title + description -> repost (merge)
 """
 
 import contextlib
@@ -28,6 +28,7 @@ from app.services.normalize import (
     company_key,
     content_hash,
     jaccard,
+    location_key,
     shingles,
     tokens,
 )
@@ -92,15 +93,19 @@ def find_duplicate(db: Session, pj: PortalJob) -> Job | None:
             return job
     title = clean_text(pj.title, MAX_TITLE) or ""
     description = clean_text(pj.description, MAX_DESCRIPTION)
-    chash = content_hash(title, clean_text(pj.company, 200) or "", clean_text(pj.location, 200), description)
+    location = clean_text(pj.location, 200)
+    chash = content_hash(title, clean_text(pj.company, 200) or "", location, description)
     key = company_key(pj.company)
     if not key:
         return None
     for job in db.scalars(select(Job).where(Job.company_key == key)):
         if job.content_hash == chash:
             return job
+        # The same title and (often boilerplate) description in another city is a different
+        # opening, so a similarity merge also requires the same location.
         if (
-            jaccard(tokens(job.title), tokens(title)) >= TITLE_SIMILARITY
+            location_key(job.location) == location_key(location)
+            and jaccard(tokens(job.title), tokens(title)) >= TITLE_SIMILARITY
             and jaccard(shingles(job.description), shingles(description)) >= DESCRIPTION_SIMILARITY
         ):
             return job
