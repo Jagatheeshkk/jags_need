@@ -191,4 +191,4 @@ Evidence and decisions: [portal-integrations.md](portal-integrations.md).
 3. ✅ Resumes, cover letters, DOCX/PDF, application tracking
 4. ✅ Automation rules engine + approval workflow
 5. ✅ Per-portal verification and permitted integrations (all manual-only)
-6. Deployment hardening, recovery drills
+6. ✅ Deployment hardening, recovery drills (the deploy itself runs on your accounts)

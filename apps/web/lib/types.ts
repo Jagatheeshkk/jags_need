@@ -440,3 +440,15 @@ export interface SyncRun {
   created_at: string;
   finished_at: string | null;
 }
+
+export interface StorageUsage {
+  database: string;
+  status: "ok" | "warn" | "fail" | "info";
+  detail: string;
+  used_bytes: number | null;
+  used_percent: number | null;
+  limit_bytes: number;
+  uploaded_resume_bytes: number;
+  row_counts: Record<string, number>;
+  largest_tables: { table: string; bytes: number }[];
+}

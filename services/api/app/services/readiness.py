@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.schemas.settings import ReadinessCheck, ReadinessReport
+from app.services import usage
 
 # Hosts we know about, with the caveat recorded in docs/free-tier-audit.md.
 _DB_HOSTS: list[tuple[str, Literal["ok", "warn"], str]] = [
@@ -82,6 +83,8 @@ def run(db: Session, settings: Settings) -> ReadinessReport:
             detail="Database-backed tasks; free hosting may sleep, so use manual refresh.",
         ),
     ]
+    storage = usage.report(db, settings)
+    checks.append(ReadinessCheck(name="database_storage", status=storage["status"], detail=storage["detail"]))
     prod = settings.environment == "production"
     checks.append(
         ReadinessCheck(

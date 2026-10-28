@@ -7,7 +7,7 @@ storage provider cannot be configured by accident because the validators reject 
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./local.db"
     db_pool_size: int = Field(default=3, ge=1, le=20)
+    # Storage quota of the database plan (Neon Free: 1 GB per project); used for usage warnings.
+    db_storage_limit_mb: int = Field(default=1024, ge=64)
 
     # Signs session cookies. Must be long and random in production.
     secret_key: str = Field(default="dev-insecure-change-me-dev-insecure-change-me", min_length=32)
@@ -89,6 +91,16 @@ class Settings(BaseSettings):
         return self.database_url.startswith("sqlite")
 
 
+class ConfigurationError(SystemExit):
+    pass
+
+
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    try:
+        return Settings()
+    except ValidationError as exc:
+        # Report what is wrong without echoing any configured value: the default error text
+        # includes the inputs, which would put secrets (e.g. SECRET_KEY) into hosting logs.
+        problems = "; ".join(f"{'.'.join(map(str, e['loc'])) or 'settings'}: {e['msg']}" for e in exc.errors())
+        raise ConfigurationError(f"Configuration error: {problems}") from None

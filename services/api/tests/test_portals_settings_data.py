@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
@@ -173,3 +174,23 @@ def test_delete_requires_password_and_confirmation(owner: TestClient, db_factory
         assert db.scalar(select(func.count()).select_from(AuditLog)) == 0
     assert owner.get("/api/auth/me").status_code == 401
     assert owner.get("/api/auth/setup-status").json()["setup_required"] is True
+
+
+def test_configuration_errors_never_echo_secrets(monkeypatch) -> None:
+    from app.core.config import ConfigurationError, get_settings
+
+    secret = "super-secret-value-that-must-not-leak-0123456789"
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("SECRET_KEY", secret)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:dbpassword123@h/db")
+    monkeypatch.delenv("BOOTSTRAP_TOKEN", raising=False)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(ConfigurationError) as exc:
+            get_settings()
+        message = str(exc.value)
+        assert "BOOTSTRAP_TOKEN must be set in production" in message
+        assert secret not in message and "dbpassword123" not in message
+        assert exc.value.__cause__ is None and exc.value.__suppress_context__
+    finally:
+        get_settings.cache_clear()

@@ -3,7 +3,7 @@
 A personal job-search and profile-management assistant that runs entirely on free tiers or
 your own machine. No paid APIs, hosting, storage, email, or browser-automation services.
 
-**Status: Phases 1–5 complete.**
+**Status: Phases 1–6 complete** (deployment is prepared and tested; the deploy itself needs your own Neon, Render and Vercel accounts).
 * Phase 1: authentication, database + migrations, candidate profile, dashboard, settings,
   mock portal connector with synthetic data.
 * Phase 2: job collection, normalisation, duplicate detection, freshness/expiry, rule-based
@@ -18,6 +18,9 @@ your own machine. No paid APIs, hosting, storage, email, or browser-automation s
   job seekers, so LinkedIn, Indeed, Naukri, Instahyre and Cutshort are **manual workflows only**:
   search links, jobs you paste in (scored and de-duplicated), portal-ready profile text, and
   applications you submit yourself. See [docs/portal-integrations.md](docs/portal-integrations.md).
+* Phase 6: Render Blueprint (`render.yaml`), single-process start (cold start 61 s → 27 s at
+  0.1 CPU), measured peak ~140 MB of 512 MB, storage usage monitoring, production-mode checks,
+  scripted recovery drill and post-deploy smoke test. See [docs/deployment.md](docs/deployment.md).
 
 ## Stack
 

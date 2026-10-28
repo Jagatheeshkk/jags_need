@@ -1,0 +1,37 @@
+# Render Blueprint for the API (Free instance: 512 MB RAM, 0.1 CPU; sleeps after 15 min idle).
+# Render → New → Blueprint → pick this repo. You are asked for the `sync: false` values once.
+# Do not add a payment method if you want a hard $0 ceiling (see docs/free-tier-audit.md).
+services:
+  - type: web
+    name: ai-job-agent-api
+    runtime: python
+    plan: free
+    # Keep this the same region as your Neon project (Neon: AWS Asia Pacific (Singapore)).
+    region: singapore
+    rootDir: services/api
+    buildCommand: pip install .
+    # Migrations are idempotent, so they run on every start (including after free-tier restarts).
+    # One process: migrate, seed and serve (faster cold start on 0.1 CPU than three processes).
+    startCommand: python -m app.cli serve --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    # Deploy only after GitHub CI passes.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # Neon pooled connection string (…-pooler…/neondb?sslmode=require)
+      - key: BOOTSTRAP_TOKEN
+        sync: false # random value you enter once on the setup screen
+      - key: CORS_ORIGINS
+        sync: false # https://<your-project>.vercel.app
+      - key: AI_PROVIDER
+        value: rule_based
+      - key: DB_POOL_SIZE
+        value: "3"
+      - key: DB_STORAGE_LIMIT_MB
+        value: "1024" # Neon Free: 1 GB per project

@@ -6,6 +6,7 @@ python -m app.cli seed-sample-jobs   # synthetic jobs from the mock connector (i
 python -m app.cli ingest             # refresh jobs + scores for the owner (scheduled task)
 python -m app.cli automate           # apply automation rules once (respects pause)
 python -m app.cli readiness          # print the deployment readiness report
+python -m app.cli serve --port 8000  # migrate + seed + serve in one process (production start)
 """
 
 import argparse
@@ -74,6 +75,21 @@ def automate() -> int:
         return 0 if run.status == "succeeded" else 1
 
 
+def serve(host: str, port: int) -> None:
+    """Migrate, seed and serve in one process.
+
+    On a 0.1-CPU free instance, importing the app is the slowest part of a cold start, so doing
+    it once (instead of separate migrate/seed/uvicorn processes) cuts start-up time.
+    """
+    import uvicorn
+
+    migrate()
+    seed()
+    from app.main import app
+
+    uvicorn.run(app, host=host, port=port, proxy_headers=False)
+
+
 def show_readiness() -> int:
     with get_sessionmaker()() as db:
         report = readiness.run(db, get_settings())
@@ -83,7 +99,11 @@ def show_readiness() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli")
-    parser.add_argument("command", choices=["migrate", "seed", "seed-sample-jobs", "ingest", "automate", "readiness"])
+    parser.add_argument(
+        "command", choices=["migrate", "seed", "seed-sample-jobs", "ingest", "automate", "readiness", "serve"]
+    )
+    parser.add_argument("--host", default="0.0.0.0")  # noqa: S104 - container/PaaS listener
+    parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
     if args.command == "migrate":
         migrate()
@@ -95,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
         return ingest()
     elif args.command == "automate":
         return automate()
+    elif args.command == "serve":
+        serve(args.host, args.port)
     else:
         return show_readiness()
     return 0

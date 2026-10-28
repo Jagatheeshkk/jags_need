@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, Button, Card, Loading, PageHeader } from "@/components/ui";
-import type { ReadinessReport } from "@/lib/types";
+import type { ReadinessReport, StorageUsage } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 
 const STATUS_STYLE = {
@@ -14,7 +14,7 @@ const STATUS_STYLE = {
 // Summary of docs/free-tier-audit.md. Limits change: re-verify on the provider's pricing page.
 const LIMITS = [
   { service: "Vercel Hobby (frontend)", limit: "Personal, non-commercial use only. No billing on Hobby: a feature that exceeds its monthly limit pauses (up to 30 days) instead of charging." },
-  { service: "Render Free web service (API)", limit: "Spins down after 15 min without traffic; waking takes about a minute. 750 free instance hours per workspace per month, then suspended until next month." },
+  { service: "Render Free web service (API)", limit: "512 MB RAM, 0.1 CPU. Spins down after 15 min without traffic; waking takes about a minute. 750 free instance hours per workspace per month, then suspended until next month." },
   { service: "Neon Free (PostgreSQL)", limit: "1 GB storage and 100 CU-hours per project per month. Compute suspends after 5 min idle. Over a limit, compute or writes pause; data is not deleted." },
   { service: "GitHub Free + Actions", limit: "Free for public repositories; 2,000 minutes per month for private ones. Without a payment method, usage stops at the quota." },
   { service: "AI engine", limit: "Rule-based by default (no API key, no cost). Optional local Ollama on your own machine." },
@@ -23,6 +23,7 @@ const LIMITS = [
 export default function HealthPage() {
   const health = useApi<{ status: string; database: string; time: string }>("/health");
   const readiness = useApi<ReadinessReport>("/settings/readiness");
+  const usage = useApi<StorageUsage>("/settings/usage");
 
   return (
     <>
@@ -72,6 +73,36 @@ export default function HealthPage() {
                   </li>
                 ))}
               </ul>
+            </>
+          )}
+        </Card>
+        <Card title="Database storage" className="lg:col-span-2">
+          {usage.loading ? (
+            <Loading sleeping={usage.sleeping} />
+          ) : usage.error || !usage.data ? (
+            <Alert kind="error">{usage.error?.message}</Alert>
+          ) : (
+            <>
+              {usage.data.used_percent !== null && (
+                <div
+                  className="mb-2 h-2 w-full overflow-hidden rounded-full bg-subtle"
+                  role="progressbar"
+                  aria-label="Database storage used"
+                  aria-valuenow={usage.data.used_percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div
+                    className={`h-full ${usage.data.status === "ok" ? "bg-emerald-500" : usage.data.status === "warn" ? "bg-amber-500" : "bg-red-500"}`}
+                    style={{ width: `${Math.min(100, usage.data.used_percent)}%` }}
+                  />
+                </div>
+              )}
+              <p className={`text-sm ${STATUS_STYLE[usage.data.status]}`} data-testid="storage-detail">{usage.data.detail}</p>
+              <p className="mt-2 text-xs text-muted">
+                Uploaded resumes: {(usage.data.uploaded_resume_bytes / 1024).toFixed(0)} KB ·{" "}
+                {Object.entries(usage.data.row_counts).map(([k, v]) => `${k} ${v}`).join(" · ")}
+              </p>
             </>
           )}
         </Card>

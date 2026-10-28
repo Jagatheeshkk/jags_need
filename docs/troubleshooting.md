@@ -11,11 +11,13 @@
 | `SettingsError ... cors_origins` | Old build | Rebuild: `docker compose up -d --build`. `CORS_ORIGINS` is comma-separated. |
 | `tomllib.TOMLDecodeError: Invalid statement (at line 1, column 1)` | File saved with a UTF-8 BOM (Windows PowerShell 5.1 `Set-Content -Encoding utf8`) | Re-save without BOM (VS Code: "UTF-8"), or write with `-Encoding ascii`. |
 | Frontend calls the wrong backend | `BACKEND_URL` is baked in at build time | Set it before `npm run build` / in Vercel env vars, then redeploy. |
-| Production API refuses to start | Safety checks: default `SECRET_KEY`, missing `BOOTSTRAP_TOKEN`, or SQLite | Set the variables listed in `infra/env.production.example`. |
+| Production API refuses to start: `Configuration error: …` | Safety checks: default `SECRET_KEY`, missing `BOOTSTRAP_TOKEN`, or SQLite (the message names the setting, never its value) | Set the variables listed in `infra/env.production.example` / `render.yaml`. |
+| Smoke test fails "Secure cookies" or "API docs hidden" | `ENVIRONMENT` is not `production` on Render | Set `ENVIRONMENT=production` and redeploy. |
+| Health page storage bar is amber/red | Database near the 1 GB Neon Free limit | Export your data, delete old uploaded resumes, then check again. |
 | Neon: `prepared statement ... does not exist` | Pooled endpoint + prepared statements | Already disabled (`prepare_threshold=None`). Make sure you deployed the current code. |
 | Render services suspended mid-month | 750 free instance hours used | Wait for the next month or run the API locally with Docker Compose. |
 | "A refresh is already running" (409) | Another refresh is in progress | Wait. If the server slept mid-run, the run is marked *interrupted* after 10 minutes and a new refresh is allowed. |
-| Refresh finds no jobs | Searches use your preferred roles, keywords and locations; only the mock connector is active | Add preferred roles/locations in My Profile, or widen them. Real portals arrive with Phase 5. |
+| Refresh finds no jobs | Searches use your preferred roles, keywords and locations; only the mock connector is automated | Widen preferred roles/locations, and add real jobs with "Add a job you found". |
 | A job scores lower than expected | Missing profile data counts as neutral (0.5), not a match | Open the job and read "Why this score"; fill the fields shown as *unknown*. |
 | "The file content is PDF, but its name ends in .docx" | Extension does not match the real file type | Save the file in its real format, or rename it correctly. |
 | "Password-protected PDFs cannot be read" | Encrypted PDF | Export an unprotected copy, or upload the DOCX. |
